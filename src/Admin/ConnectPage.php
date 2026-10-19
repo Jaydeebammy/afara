@@ -29,12 +29,12 @@ final class ConnectPage
           <div class="afara-card">
             <h2><?php esc_html_e('Connection status', 'afara'); ?></h2>
             <p><strong><?php echo esc_html($gate->canRead() ? __('Local permission gate ready', 'afara') : __('Disabled', 'afara')); ?></strong></p>
-            <p><?php esc_html_e('The remote MCP endpoint and WP-CLI transport are not available in this development milestone.', 'afara'); ?></p>
+            <p><?php esc_html_e('MCP server integration is not yet enabled. Install and configure the official MCP Adapter separately after the integration milestone is validated.', 'afara'); ?></p>
             <p><a class="button button-secondary" href="<?php echo esc_url(admin_url('admin.php?page=afara')); ?>"><?php esc_html_e('Configure settings', 'afara'); ?></a></p>
           </div>
           <div class="afara-card">
             <h2><?php esc_html_e('Application Passwords', 'afara'); ?></h2>
-            <p><?php esc_html_e('WordPress manages application passwords under Users → Profile. Do not create or share a password until the MCP server is implemented and tested over HTTPS.', 'afara'); ?></p>
+            <p><?php esc_html_e('WordPress manages Application Passwords under Users → Profile. Do not create or share a password for Afara until the MCP connection has been validated over HTTPS.', 'afara'); ?></p>
           </div>
         </div>
         <?php
