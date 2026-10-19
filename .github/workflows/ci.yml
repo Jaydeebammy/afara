@@ -15,3 +15,4 @@ jobs:
           php tests/PermissionGateTest.php
           php tests/PathGuardTest.php
           php tests/ReadablePathsTest.php
+          php tests/SourcePolicyTest.php
