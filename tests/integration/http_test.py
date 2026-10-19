@@ -148,7 +148,7 @@ try:
     wp('user', 'application-password', 'delete', 'admin', admin_password_id)
     admin_password_id = None
     check(request(rpc('tools/list'), credentials, session)[0] == 401, 'revoked Application Password denied on existing session')
-    print(f'{checks} WordPress HTTP integration checks passed')
+    print(f'::notice::{checks} WordPress HTTP integration checks passed')
 finally:
     if fixture:
         shutil.rmtree(fixture)

@@ -7,12 +7,12 @@ permissions:
   contents: read
 jobs:
   unit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         php: ['8.1', '8.3', '8.4']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -20,7 +20,7 @@ jobs:
       - name: Syntax and all isolated tests
         run: bash tests/run.sh
   wordpress:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +43,7 @@ jobs:
     env:
       AFARA_WP_PATH: /tmp/afara-wp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -52,6 +52,7 @@ jobs:
           coverage: none
       - name: Install disposable WordPress and official MCP Adapter
         run: |
+          exec > >(tee /tmp/afara-wp-setup.log) 2>&1
           wp core download --path="$AFARA_WP_PATH" --version="${{ matrix.wordpress }}"
           wp core verify-checksums --path="$AFARA_WP_PATH"
           wp config create --path="$AFARA_WP_PATH" --dbname=afara_test --dbuser=root --dbpass=afara-disposable-test --dbhost=127.0.0.1:3306
@@ -66,3 +67,12 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           python3 tests/integration/http_test.py
+      - name: Report setup failure details
+        if: failure()
+        run: |
+          if [ -f /tmp/afara-wp-setup.log ]; then
+            tail -30 /tmp/afara-wp-setup.log | while IFS= read -r line; do
+              line="${line//'%'/'%25'}"
+              echo "::error title=WordPress setup::$line"
+            done
+          fi
