@@ -26,8 +26,8 @@ final class AbilitiesPage
         $abilities = [
             ['afara/site-context', 'Read WordPress and PHP environment', 'Read', 'Administrator + domain lock', true],
             ['afara/execute-php', 'Run arbitrary PHP', 'Write', 'Not implemented', false],
-            ['afara/read-file', 'Read files within WordPress', 'Read', 'Not implemented', false],
-            ['afara/list-directory', 'List files within WordPress', 'Read', 'Not implemented', false],
+            ['afara/read-file', 'Read limited theme and plugin source files', 'Read', 'Administrator + domain lock', true],
+            ['afara/list-directory', 'List limited theme and plugin directories', 'Read', 'Administrator + domain lock', true],
             ['afara/write-file', 'Write a file', 'Write', 'Not implemented', false],
             ['afara/edit-file', 'Edit a file', 'Write', 'Not implemented', false],
             ['afara/delete-file', 'Delete a file', 'Write', 'Not implemented', false],
