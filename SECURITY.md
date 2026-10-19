@@ -29,3 +29,7 @@ See [docs/MCP.md](docs/MCP.md) and [docs/TESTING.md](docs/TESTING.md).
 
 Report vulnerabilities privately to the repository owner through GitHub private
 vulnerability reporting if enabled. Do not publish active exploits.
+
+## Quiet mode is not a security control
+
+Quiet mode hides Afara's menu and its rows on the Plugins and Updates screens from administrators who aren't on the chosen list. It never blocks them: a hidden administrator can still open Afara's pages by URL, see Afara in WP-CLI and Site Health, read its files, and connect an agent. Tell the site owner Afara is installed. If no listed account is still an administrator, quiet mode turns itself off, and `define('AFARA_QUIET_MODE_OFF', true);` in `wp-config.php` turns it off at any time.

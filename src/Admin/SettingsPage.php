@@ -32,6 +32,14 @@ final class SettingsPage
             'type' => 'string', 'default' => '1',
             'sanitize_callback' => static fn ($value): string => $value === '0' ? '0' : '1',
         ]);
+        register_setting('afara_settings', QuietMode::OPTION_ENABLED, [
+            'type' => 'string', 'default' => '0',
+            'sanitize_callback' => [QuietMode::class, 'sanitizeEnabled'],
+        ]);
+        register_setting('afara_settings', QuietMode::OPTION_USERS, [
+            'type' => 'array', 'default' => [],
+            'sanitize_callback' => [QuietMode::class, 'sanitizeUsers'],
+        ]);
         register_setting('afara_settings', 'afara_domain_lock', [
             'type' => 'string', 'default' => '',
             'sanitize_callback' => static function ($value): string {
@@ -99,6 +107,69 @@ final class SettingsPage
         };
     }
 
+    /** Quiet mode fields. Kept inside the settings form so one Save covers both. */
+    private function renderQuietMode(): void
+    {
+        $current = (int) get_current_user_id();
+        $listed = QuietMode::listedUsers();
+        $on = get_option(QuietMode::OPTION_ENABLED, '0') === '1';
+        $admins = function_exists('get_users')
+            ? get_users(['capability' => 'manage_options', 'fields' => ['ID', 'user_login', 'display_name'], 'number' => 100, 'orderby' => 'login'])
+            : [];
+        $hiddenCount = 0;
+        foreach ($admins as $user) {
+            if ($on && (int) $user->ID !== $current && !in_array((int) $user->ID, $listed, true)) {
+                $hiddenCount++;
+            }
+        }
+        ?>
+            <h2 id="afara-quiet-heading"><?php esc_html_e('Quiet mode', 'afara'); ?></h2>
+            <p><?php esc_html_e('Hide Afara’s menu and its rows on the Plugins and Updates screens from administrators you don’t pick, so a client’s team doesn’t see it in their dashboard.', 'afara'); ?></p>
+            <div class="notice notice-info inline"><p><strong><?php esc_html_e('Quiet mode hides, it doesn’t block.', 'afara'); ?></strong> <?php esc_html_e('Hidden administrators can still open Afara by URL, see it in WP-CLI and Site Health, and connect an agent. Tell your client Afara is installed.', 'afara'); ?></p></div>
+            <?php if (QuietMode::forcedOff()) : ?>
+              <div class="afara-status afara-status--off" aria-labelledby="afara-quiet-status">
+                <span class="dashicons dashicons-visibility" aria-hidden="true"></span>
+                <div><p id="afara-quiet-status" class="afara-status__title"><strong><?php esc_html_e('Quiet mode is switched off by wp-config.php', 'afara'); ?></strong></p>
+                <p class="afara-status__detail"><?php esc_html_e('Every administrator can see Afara. Remove AFARA_QUIET_MODE_OFF from wp-config.php to use the settings below.', 'afara'); ?></p></div>
+              </div>
+            <?php elseif ($on && QuietMode::isActive()) : ?>
+              <div class="afara-status afara-status--on" aria-labelledby="afara-quiet-status">
+                <span class="dashicons dashicons-hidden" aria-hidden="true"></span>
+                <div><p id="afara-quiet-status" class="afara-status__title"><strong><?php
+                    echo esc_html(sprintf(
+                        /* translators: %d: number of administrators Afara is hidden from */
+                        _n('Quiet mode on — hidden from %d administrator', 'Quiet mode on — hidden from %d administrators', $hiddenCount, 'afara'),
+                        $hiddenCount
+                    ));
+                ?></strong></p></div>
+              </div>
+            <?php else : ?>
+              <div class="afara-status afara-status--off" aria-labelledby="afara-quiet-status">
+                <span class="dashicons dashicons-visibility" aria-hidden="true"></span>
+                <div><p id="afara-quiet-status" class="afara-status__title"><strong><?php esc_html_e('Quiet mode off — every administrator can see Afara', 'afara'); ?></strong></p></div>
+              </div>
+            <?php endif; ?>
+            <table class="form-table" role="presentation">
+              <tr><th scope="row"><?php esc_html_e('Quiet mode', 'afara'); ?></th><td>
+                <label><input type="hidden" name="<?php echo esc_attr(QuietMode::OPTION_ENABLED); ?>" value="<?php echo esc_attr(QuietMode::forcedOff() && $on ? '1' : '0'); ?>"><input type="checkbox" name="<?php echo esc_attr(QuietMode::OPTION_ENABLED); ?>" value="1" aria-describedby="afara-quiet-status" <?php checked($on); ?><?php disabled(QuietMode::forcedOff()); ?>> <?php esc_html_e('Hide Afara from administrators not ticked below', 'afara'); ?></label>
+              </td></tr>
+              <tr><th scope="row"><?php esc_html_e('Who can see Afara', 'afara'); ?></th><td>
+                <fieldset aria-describedby="afara-quiet-users-help">
+                  <legend class="screen-reader-text"><?php esc_html_e('Administrators who can see Afara', 'afara'); ?></legend>
+                  <?php foreach ($admins as $user) : $id = (int) $user->ID; $isMe = $id === $current; ?>
+                    <label class="afara-quiet-user"><input type="checkbox" name="<?php echo esc_attr(QuietMode::OPTION_USERS); ?>[]" value="<?php echo esc_attr((string) $id); ?>" <?php checked($isMe || in_array($id, $listed, true)); ?><?php disabled($isMe); ?>>
+                      <?php echo esc_html((string) $user->display_name); ?> <span class="description">(<?php echo esc_html((string) $user->user_login); ?>)</span><?php echo $isMe ? ' <span class="afara-badge">' . esc_html__('You — always included', 'afara') . '</span>' : ''; ?></label><br>
+                  <?php endforeach; ?>
+                  <?php if (in_array($current, array_map(static fn ($u): int => (int) $u->ID, $admins), true)) : ?>
+                    <input type="hidden" name="<?php echo esc_attr(QuietMode::OPTION_USERS); ?>[]" value="<?php echo esc_attr((string) $current); ?>">
+                  <?php endif; ?>
+                </fieldset>
+                <p id="afara-quiet-users-help" class="description"><?php echo esc_html__('Locked out? Add this line to wp-config.php to show Afara to every administrator again:', 'afara'); ?> <code>define('AFARA_QUIET_MODE_OFF', true);</code></p>
+              </td></tr>
+            </table>
+        <?php
+    }
+
     public function render(): void
     {
         if (!current_user_can('manage_options')) {
@@ -135,6 +206,7 @@ final class SettingsPage
               <tr><th scope="row">Read-only mode</th><td><label><input type="hidden" name="afara_read_only" value="0"><input type="checkbox" name="afara_read_only" value="1" <?php checked(get_option('afara_read_only', '1'), '1'); ?>> Restrict changes</label><p class="description">This option will govern future write abilities. Leave it enabled.</p></td></tr>
               <tr><th scope="row"><label for="afara_domain_lock">Domain lock</label></th><td><input id="afara_domain_lock" class="regular-text" type="text" name="afara_domain_lock" value="<?php echo esc_attr($locked !== '' ? $locked : $hostname); ?>" aria-describedby="afara-domain-lock-help"><p id="afara-domain-lock-help" class="description"><?php echo $locked === '' ? esc_html__('Pre-filled with this site’s address. Save to lock Afara to it.', 'afara') . ' ' : ''; ?>Enter the site's hostname (without https:// or path). Changing domains disables access until updated.</p></td></tr>
             </table>
+            <?php $this->renderQuietMode(); ?>
             <?php submit_button('Save settings'); ?>
           </form>
           <?php if ($justSaved) : ?>

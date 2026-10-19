@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/McpServerTest.php';
+require dirname(__DIR__) . '/src/Admin/QuietMode.php';
 require dirname(__DIR__) . '/src/Admin/SettingsPage.php';
 
 function esc_html($value): string { return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); }
@@ -11,7 +12,12 @@ function esc_html_e($value, $domain): void { echo esc_html($value); }
 function wp_die($message): void { throw new RuntimeException($message); }
 function settings_fields($group): void {}
 function submit_button($label): void { echo '<button>' . esc_html($label) . '</button>'; }
-function checked($a, $b): void { if ((string) $a === (string) $b) { echo 'checked="checked"'; } }
+function checked($a, $b = true): void { if ((string) $a === (string) $b) { echo 'checked="checked"'; } }
+function disabled($a, $b = true): void { if ((string) $a === (string) $b) { echo 'disabled="disabled"'; } }
+function _n($single, $plural, $n, $domain): string { return $n === 1 ? $single : $plural; }
+$wpUsers = [];
+function get_users($args): array { global $wpUsers; return $wpUsers; }
+function user_can($id, $cap): bool { global $wpUsers; foreach ($wpUsers as $u) { if ((int) $u->ID === (int) $id) { return $cap === 'manage_options'; } } return false; }
 
 use Afara\Admin\SettingsPage;
 

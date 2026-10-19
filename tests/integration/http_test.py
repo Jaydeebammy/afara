@@ -177,6 +177,29 @@ try:
         check(secret not in serialized_log, 'activity log stores no secrets, paths or IPs')
     check(all(sorted(e) == sorted(['time', 'user_id', 'user_login', 'connection', 'connection_id', 'ability', 'result', 'reason', 'count']) for e in log),
           'activity log fields are exactly the documented set')
+
+    # Quiet mode: hides Afara from unlisted admins, never blocks them.
+    client_id = wp('user', 'create', 'afara-http-client', 'afara-client@example.test', '--role=administrator', '--porcelain')
+    admin_id = wp('user', 'get', 'admin', '--field=ID')
+    wp('option', 'update', 'afara_quiet_mode', '1')
+    wp('option', 'update', 'afara_quiet_users', json.dumps([int(admin_id)]), '--format=json')
+    probe = ('require_once ABSPATH . "wp-admin/includes/plugin.php"; $p = apply_filters("all_plugins", get_plugins());'
+             'echo wp_json_encode(["row" => (bool) array_filter(array_keys($p), fn($k) => str_starts_with($k, "afara/")),'
+             '"visible" => \\Afara\\Admin\\QuietMode::visibleToCurrentUser()]);')
+    as_user = lambda user, code: json.loads(subprocess.check_output(['wp', f'--path={ROOT}', f'--user={user}', 'eval', code], text=True))
+    seen = as_user('admin', probe)
+    check(seen['row'] and seen['visible'], 'quiet mode: listed admin still sees Afara')
+    seen = as_user('afara-http-client', probe)
+    check(not seen['row'] and not seen['visible'], 'quiet mode: unlisted admin does not see Afara on Plugins')
+    seen = as_user('afara-http-client', 'define("AFARA_QUIET_MODE_OFF", true);' + probe)
+    check(seen['row'] and seen['visible'], 'quiet mode: wp-config constant shows Afara again')
+    client_password = wp('user', 'application-password', 'create', client_id, 'afara-quiet-test', '--porcelain')
+    client_session = initialize('afara-http-client:' + client_password)
+    status, _, body = request(rpc('tools/list'), 'afara-http-client:' + client_password, client_session)
+    check(status == 200 and len(body.get('result', {}).get('tools', [])) == 3, 'quiet mode hides, never blocks: hidden admin can still connect')
+    wp('user', 'delete', client_id, '--yes')
+    wp('option', 'delete', 'afara_quiet_mode')
+    wp('option', 'delete', 'afara_quiet_users')
     print(f'::notice::{checks} WordPress HTTP integration checks passed')
 finally:
     if fixture:
@@ -188,3 +211,5 @@ finally:
     wp('option', 'delete', 'afara_enabled')
     wp('option', 'delete', 'afara_domain_lock')
     wp('option', 'delete', 'afara_activity_log')
+    wp('option', 'delete', 'afara_quiet_mode')
+    wp('option', 'delete', 'afara_quiet_users')
