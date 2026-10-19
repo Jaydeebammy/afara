@@ -22,15 +22,18 @@ final class Plugin
             }
         });
 
-        add_action('wp_abilities_api_init', static function (): void {
-            if (!function_exists('wp_register_ability')) {
-                return;
-            }
+        add_action('wp_abilities_api_categories_init', static function (): void {
             if (function_exists('wp_register_ability_category')) {
                 wp_register_ability_category('afara', [
                     'label' => __('Afara', 'afara'),
                     'description' => __('Afara site abilities.', 'afara'),
                 ]);
+            }
+        });
+
+        add_action('wp_abilities_api_init', static function (): void {
+            if (!function_exists('wp_register_ability')) {
+                return;
             }
             (new SiteContext(new PermissionGate()))->register();
         });
