@@ -17,6 +17,12 @@ final class Plugin
             if (!function_exists('wp_register_ability')) {
                 return;
             }
+            if (function_exists('wp_register_ability_category')) {
+                wp_register_ability_category('afara', [
+                    'label' => __('Afara', 'afara'),
+                    'description' => __('Afara site abilities.', 'afara'),
+                ]);
+            }
             (new SiteContext(new PermissionGate()))->register();
         });
     }
