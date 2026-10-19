@@ -40,11 +40,17 @@ final class LocalAtomicWriter
             throw new \RuntimeException('Target is not an editable regular file');
         }
 
-        $lock = fopen($root . '/.afara-edit.lock', 'c');
+        $lockPath = $root . '/.afara-edit.lock';
+        if (is_link($lockPath) || (file_exists($lockPath) && !is_file($lockPath))) {
+            throw new \RuntimeException('Unsafe lock file');
+        }
+        $lock = fopen($lockPath, 'c');
         if ($lock === false || !flock($lock, LOCK_EX)) {
             throw new \RuntimeException('Unable to lock edit workspace');
         }
         $temp = null;
+        $backup = null;
+        $committed = false;
         try {
             clearstatcache(true, $path);
             if (is_link($path) || !is_file($path)) {
@@ -80,8 +86,12 @@ final class LocalAtomicWriter
                 throw new \RuntimeException('Atomic replacement failed');
             }
             $temp = null;
+            $committed = true;
             return ['before_sha256' => $actual, 'after_sha256' => hash('sha256', $updated), 'backup' => $backup];
         } finally {
+            if (!$committed && is_string($backup) && is_file($backup)) {
+                unlink($backup);
+            }
             if (is_string($temp) && is_file($temp)) {
                 unlink($temp);
             }
@@ -93,7 +103,9 @@ final class LocalAtomicWriter
     public function restore(string $name, string $backup, string $expectedCurrentSha): void
     {
         $root = realpath($this->root);
-        if ($root === false || !str_starts_with($backup, $root . '/.afara-backup-') || is_link($backup) || !is_file($backup)) {
+        if ($root === false || dirname($backup) !== $root
+            || !preg_match('/\A\.afara-backup-[a-zA-Z0-9]+\z/D', basename($backup))
+            || is_link($backup) || !is_file($backup)) {
             throw new \InvalidArgumentException('Invalid backup');
         }
         $content = file_get_contents($backup);
