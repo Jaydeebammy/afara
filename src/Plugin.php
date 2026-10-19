@@ -6,6 +6,7 @@ namespace Afara;
 use Afara\Admin\SettingsPage;
 use Afara\Admin\ConnectPage;
 use Afara\Admin\AbilitiesPage;
+use Afara\Admin\ActivityLogPage;
 use Afara\Security\PermissionGate;
 use Afara\Abilities\SiteContext;
 use Afara\Abilities\ReadFile;
@@ -20,6 +21,7 @@ final class Plugin
         (new SettingsPage())->register();
         (new ConnectPage())->register();
         (new AbilitiesPage())->register();
+        (new ActivityLogPage())->register();
         add_action('admin_enqueue_scripts', static function (string $hook): void {
             if (str_contains($hook, 'afara')) {
                 wp_enqueue_style('afara-admin', plugins_url('assets/admin.css', AFARA_PLUGIN_FILE), [], AFARA_VERSION);
