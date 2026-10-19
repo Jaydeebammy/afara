@@ -16,3 +16,6 @@
   .afara-admin .afara-status--changed{animation:afara-status-changed 1.6s ease-out 1}
 }
 @keyframes afara-status-changed{0%{box-shadow:0 0 0 0 rgba(34,113,177,.55)}70%{box-shadow:0 0 0 10px rgba(34,113,177,0)}100%{box-shadow:0 1px 1px rgba(0,0,0,.04)}}
+.afara-admin .afara-status--ready{background:#f0f6fc;border-left-color:#2271b1}
+.afara-admin .afara-status--ready .dashicons{color:#135e96}
+.afara-admin .afara-status__action{margin-top:10px!important}
