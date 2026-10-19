@@ -223,10 +223,16 @@ try:
     wp('option', 'update', 'afara_oauth_enabled', '1')
     pretty = '/wp-json/afara/v1/mcp'
 
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None  # Report 3xx as-is; WordPress may redirect to its https://localhost canonical URL.
+
+    no_redirect = urllib.request.build_opener(NoRedirect)
+
     def raw(path, data=None, headers=None, method=None):
         req = urllib.request.Request(BASE + path, data=data, headers=headers or {}, method=method or ('POST' if data is not None else 'GET'))
         try:
-            response = urllib.request.urlopen(req, timeout=15)
+            response = no_redirect.open(req, timeout=15)
         except urllib.error.HTTPError as error:
             response = error
         with response:
@@ -346,7 +352,9 @@ try:
     check(status == 401, 'oauth: revoking the app in Connect signs it out')
 
     wp('option', 'update', 'afara_oauth_enabled', '0')
-    check(raw(local(prm_url))[0] == 404 and raw('/wp-json/afara/v1/oauth/metadata')[0] == 404, 'oauth: switched off means no discovery documents')
+    off_status, _, off_body = raw(local(prm_url))
+    check(off_status != 200 and b'authorization_servers' not in off_body, 'oauth: switched off means no well-known document')
+    check(raw('/wp-json/afara/v1/oauth/metadata')[0] == 404, 'oauth: switched off means no metadata endpoint')
     status, h, _ = raw(pretty, json.dumps(rpc('tools/list')).encode(), {'Content-Type': 'application/json'})
     check(status == 401 and 'Bearer' not in h.get('www-authenticate', ''), 'oauth: switched off means no Bearer challenge')
     wp('option', 'delete', 'afara_oauth_enabled')
