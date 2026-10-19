@@ -11,10 +11,16 @@ namespace Afara\Editing;
  */
 final class LocalAtomicWriter
 {
-    public function __construct(private readonly string $root)
+    public function __construct(private readonly string $root, private readonly string $backupRoot)
     {
-        if (!is_dir($root) || is_link($root) || realpath($root) === false) {
-            throw new \InvalidArgumentException('Invalid edit root');
+        $edit = realpath($root);
+        $backups = realpath($backupRoot);
+        if (!is_dir($root) || is_link($root) || $edit === false
+            || !is_dir($backupRoot) || is_link($backupRoot) || $backups === false
+            || $edit === $backups || str_starts_with($backups . '/', $edit . '/')
+            || str_starts_with($edit . '/', $backups . '/')
+            || !is_writable($backups)) {
+            throw new \InvalidArgumentException('Edit and backup roots must be separate, writable directories');
         }
     }
 
@@ -32,7 +38,11 @@ final class LocalAtomicWriter
             throw new \InvalidArgumentException('Invalid expected checksum');
         }
         $root = realpath($this->root);
-        if ($root === false || is_link($this->root)) {
+        $backupRoot = realpath($this->backupRoot);
+        if ($root === false || $backupRoot === false || is_link($this->backupRoot)
+            || !is_writable($backupRoot) || $root === $backupRoot
+            || str_starts_with($backupRoot . '/', $root . '/') || str_starts_with($root . '/', $backupRoot . '/')
+            || is_link($this->root)) {
             throw new \RuntimeException('Root changed');
         }
         $path = $root . DIRECTORY_SEPARATOR . $name;
@@ -67,10 +77,11 @@ final class LocalAtomicWriter
             if ($source === $updated) {
                 throw new \InvalidArgumentException('No content change');
             }
-            $backup = tempnam($root, '.afara-backup-');
+            $backup = tempnam($backupRoot, '.afara-backup-');
             if ($backup === false || file_put_contents($backup, $source, LOCK_EX) !== strlen($source)) {
                 throw new \RuntimeException('Cannot create backup');
             }
+            chmod($backup, 0600);
             $temp = tempnam($root, '.afara-next-');
             if ($temp === false || file_put_contents($temp, $updated, LOCK_EX) !== strlen($updated)) {
                 throw new \RuntimeException('Cannot stage replacement');
@@ -102,8 +113,8 @@ final class LocalAtomicWriter
 
     public function restore(string $name, string $backup, string $expectedCurrentSha): void
     {
-        $root = realpath($this->root);
-        if ($root === false || dirname($backup) !== $root
+        $backupRoot = realpath($this->backupRoot);
+        if ($backupRoot === false || is_link($this->backupRoot) || dirname($backup) !== $backupRoot
             || !preg_match('/\A\.afara-backup-[a-zA-Z0-9]+\z/D', basename($backup))
             || is_link($backup) || !is_file($backup)) {
             throw new \InvalidArgumentException('Invalid backup');
