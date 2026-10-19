@@ -45,6 +45,8 @@ namespace {
     }
     require dirname(__DIR__) . '/src/Security/PermissionGate.php';
     require dirname(__DIR__) . '/src/Mcp/Server.php';
+    require dirname(__DIR__) . '/src/Audit/ActivityLog.php';
+    require dirname(__DIR__) . '/src/Audit/AuditCallback.php';
     require dirname(__DIR__) . '/src/Abilities/SiteContext.php';
     require dirname(__DIR__) . '/src/Abilities/ReadFile.php';
     require dirname(__DIR__) . '/src/Abilities/ListDirectory.php';
