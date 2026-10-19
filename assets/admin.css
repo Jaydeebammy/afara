@@ -1,1 +1,21 @@
 .afara-admin{max-width:1100px}.afara-admin .afara-card{background:#fff;border:1px solid #c3c4c7;box-shadow:0 1px 1px rgba(0,0,0,.04);padding:18px 22px;margin:16px 0;max-width:850px}.afara-admin h2{font-size:18px}.afara-admin .widefat th,.afara-admin .widefat td{padding:13px 12px}.afara-admin .description{color:#646970}.afara-admin code{overflow-wrap:anywhere}@media(max-width:782px){.afara-admin .widefat{display:block;overflow-x:auto}}
+/* Status panel: icon + words + colour, so state never relies on colour alone. */
+.afara-admin .afara-status{display:flex;gap:12px;align-items:flex-start;max-width:850px;margin:12px 0 20px;padding:14px 16px;background:#fff;border:1px solid #c3c4c7;border-left-width:4px;box-shadow:0 1px 1px rgba(0,0,0,.04)}
+.afara-admin .afara-status p{margin:0}
+.afara-admin .afara-status__title{font-size:15px;line-height:1.4;color:#1d2327}
+.afara-admin .afara-status__detail{margin-top:4px!important;color:#3c434a}
+.afara-admin .afara-status .dashicons{flex:none;width:24px;height:24px;font-size:24px;margin-top:1px}
+.afara-admin .afara-status--on{background:#edfaef;border-left-color:#00a32a}
+.afara-admin .afara-status--on .dashicons{color:#007017}
+.afara-admin .afara-status--off{background:#f6f7f7;border-left-color:#8c8f94}
+.afara-admin .afara-status--off .dashicons{color:#50575e}
+.afara-admin .afara-status--action-needed{background:#fcf0f1;border-left-color:#d63638}
+.afara-admin .afara-status--action-needed .dashicons{color:#b32d2e}
+.afara-admin .afara-save-notice:focus{outline:2px solid #2271b1;outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){
+  .afara-admin .afara-status--changed{animation:afara-status-changed 1.6s ease-out 1}
+}
+@keyframes afara-status-changed{0%{box-shadow:0 0 0 0 rgba(34,113,177,.55)}70%{box-shadow:0 0 0 10px rgba(34,113,177,0)}100%{box-shadow:0 1px 1px rgba(0,0,0,.04)}}
+.afara-admin .afara-status--ready{background:#f0f6fc;border-left-color:#2271b1}
+.afara-admin .afara-status--ready .dashicons{color:#135e96}
+.afara-admin .afara-status__action{margin-top:10px!important}
