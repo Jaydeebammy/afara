@@ -2,15 +2,18 @@ name: PHP syntax
 on:
   push:
   pull_request:
+  workflow_dispatch:
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: PHP version
+        run: php -v
       - name: Check PHP syntax
         run: |
-          find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
-      - name: Permission gate tests
+          find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -r -n1 php -l
+      - name: Permission and path guard tests
         run: |
           php tests/PermissionGateTest.php
           php tests/PathGuardTest.php
