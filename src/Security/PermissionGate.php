@@ -25,6 +25,24 @@ final class PermissionGate
             && current_user_can('manage_options');
     }
 
+    /**
+     * Why canRead() is false, as a short code for the Activity log, or null if allowed.
+     * Checked in the same order the admin pages explain them.
+     */
+    public function readDenialReason(): ?string
+    {
+        if (!$this->isEnabled()) {
+            return 'afara_disabled';
+        }
+        if (!$this->isDomainMatched()) {
+            return 'afara_domain_mismatch';
+        }
+        if (!current_user_can('manage_options')) {
+            return 'afara_not_admin';
+        }
+        return null;
+    }
+
     public function canWrite(): bool
     {
         return $this->canRead()

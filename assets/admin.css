@@ -19,3 +19,11 @@
 .afara-admin .afara-status--ready{background:#f0f6fc;border-left-color:#2271b1}
 .afara-admin .afara-status--ready .dashicons{color:#135e96}
 .afara-admin .afara-status__action{margin-top:10px!important}
+.afara-admin .afara-result{display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.afara-admin .afara-result .dashicons{width:18px;height:18px;font-size:18px}
+.afara-admin .afara-result--success{color:#007017}
+.afara-admin .afara-result--error{color:#996800}
+.afara-admin .afara-result--refused{color:#b32d2e}
+.afara-admin .afara-log__row--refused td:first-child{box-shadow:inset 3px 0 0 #d63638}
+.afara-admin .afara-log__repeat{color:#50575e;font-size:12px}
+.afara-admin .subsubsub{float:none;margin:0 0 8px}

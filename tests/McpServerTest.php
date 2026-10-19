@@ -29,6 +29,10 @@ namespace {
     class WP_Error { public function get_error_code(): string { return 'test_failure'; } }
     function is_wp_error($value): bool { return $value instanceof WP_Error; }
     function get_option($name, $default = false) { global $options; return $options[$name] ?? $default; }
+    function update_option($name, $value, $autoload = null): bool { global $options; $options[$name] = $value; return true; }
+    $userId = 0;
+    function get_current_user_id(): int { global $userId; return $userId; }
+    function get_userdata($id) { return $id === 1 ? (object) ['user_login' => 'admin'] : false; }
     function home_url(): string { return 'https://staging.example.test'; }
     function wp_parse_url($url, $component) { return parse_url($url, $component); }
     function current_user_can($capability): bool { global $admin; return $capability === 'manage_options' && $admin; }
@@ -106,6 +110,58 @@ namespace {
     $options['afara_enabled'] = '0';
     check(!$authorize(), 'disable denies existing server immediately');
     foreach ($abilities as $definition) { check(!$definition['permission_callback'](), 'ability disable check'); }
+
+    // Refused requests are logged once per request, with a reason and no secrets.
+    $log = static function () use (&$options): array { return \Afara\Audit\ActivityLog::recent(); };
+    $attempt = static function () use ($authorize): bool { \Afara\Mcp\Server::resetRequestState(); return $authorize(); };
+    $options = ['afara_enabled' => '1', 'afara_domain_lock' => 'staging.example.test'];
+    $ssl = true; $loggedIn = false; $admin = false; $userId = 0;
+    check(!$attempt(), 'anonymous refused');
+    check(!$authorize() && !$authorize(), 'adapter re-checks in the same request');
+    $entries = $log();
+    check(count($entries) === 1 && $entries[0]['reason'] === 'afara_not_signed_in' && $entries[0]['count'] === 1, 'one refusal row per request');
+    $loggedIn = true; $userId = 2;
+    check(!$attempt(), 'editor refused');
+    check($log()[0]['reason'] === 'afara_not_admin' && $log()[0]['user_id'] === 2, 'non-admin refusal names the user');
+    $admin = true; $userId = 1;
+    $options['afara_domain_lock'] = 'other.test';
+    check(!$attempt(), 'mismatch refused');
+    check($log()[0]['reason'] === 'afara_domain_mismatch' && $log()[0]['user_login'] === 'admin', 'domain mismatch reason');
+    $options['afara_enabled'] = '0';
+    check(!$attempt() && $log()[0]['reason'] === 'afara_disabled', 'disabled reason');
+    $options['afara_enabled'] = '1'; $options['afara_domain_lock'] = 'staging.example.test';
+    $ssl = false;
+    check(!$attempt() && $log()[0]['reason'] === 'afara_https_required', 'https reason');
+    $ssl = true;
+    $before = count($log());
+    check($attempt(), 'allowed request');
+    check(count($log()) === $before, 'allowed transport checks add no rows');
+
+    // Application Password outcomes, only on Afara's route.
+    check(isset($hooks['application_password_failed_authentication'], $hooks['application_password_did_authenticate']), 'auth hooks registered');
+    $fail = new class { public function get_error_code(): string { return 'incorrect_password'; } };
+    $_GET = []; $_SERVER['REQUEST_URI'] = '/wp-json/wp/v2/posts';
+    \Afara\Mcp\Server::resetRequestState();
+    $server->connectionFailed($fail);
+    check($log()[0]['reason'] !== 'incorrect_password', 'other routes are not logged');
+    $_SERVER['REQUEST_URI'] = '/wp-json/afara/v1/mcp';
+    \Afara\Mcp\Server::resetRequestState();
+    $server->connectionFailed($fail);
+    check($log()[0]['reason'] === 'incorrect_password' && $log()[0]['result'] === 'refused', 'revoked password refusal logged');
+    $_SERVER['REQUEST_URI'] = '/index.php';
+    $_GET = ['rest_route' => '/afara/v1/mcp'];
+    check(\Afara\Mcp\Server::isAfaraRequest(), 'plain-permalink route detected');
+    $_GET = ['rest_route' => '/afara/v1/mcpx'];
+    check(!\Afara\Mcp\Server::isAfaraRequest(), 'look-alike route ignored');
+    $_GET = ['rest_route' => '/afara/v1/mcp'];
+    \Afara\Mcp\Server::resetRequestState();
+    $server->connectionAuthenticated((object) [], ['name' => 'Antigravity', 'uuid' => 'abc', 'password' => 'hash-must-not-leak']);
+    \Afara\Audit\ActivityLog::record('afara/site-context', true);
+    check($log()[0]['connection'] === 'Antigravity', 'connection label recorded');
+    check(!str_contains(json_encode($options['afara_activity_log']), 'hash-must-not-leak'), 'password hash never stored');
+    $_GET = []; unset($_SERVER['REQUEST_URI']);
+    \Afara\Mcp\Server::resetRequestState();
+
     unset($abilities['afara/read-file']);
     $server->create($adapter);
     check(count($adapter->calls) === 1, 'missing ability prevents incomplete server registration');
