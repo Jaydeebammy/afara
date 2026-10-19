@@ -54,8 +54,8 @@ final class SettingsPage
           <form method="post" action="options.php">
             <?php settings_fields('afara_settings'); ?>
             <table class="form-table" role="presentation">
-              <tr><th scope="row">AI access</th><td><label><input type="checkbox" name="afara_enabled" value="1" <?php checked(get_option('afara_enabled', '0'), '1'); ?>> Enable Afara (off by default)</label></td></tr>
-              <tr><th scope="row">Read-only mode</th><td><label><input type="checkbox" name="afara_read_only" value="1" <?php checked(get_option('afara_read_only', '1'), '1'); ?>> Restrict changes</label><p class="description">This option will govern future write abilities. Leave it enabled.</p></td></tr>
+              <tr><th scope="row">AI access</th><td><label><input type="hidden" name="afara_enabled" value="0"><input type="checkbox" name="afara_enabled" value="1" <?php checked(get_option('afara_enabled', '0'), '1'); ?>> Enable Afara (off by default)</label></td></tr>
+              <tr><th scope="row">Read-only mode</th><td><label><input type="hidden" name="afara_read_only" value="0"><input type="checkbox" name="afara_read_only" value="1" <?php checked(get_option('afara_read_only', '1'), '1'); ?>> Restrict changes</label><p class="description">This option will govern future write abilities. Leave it enabled.</p></td></tr>
               <tr><th scope="row"><label for="afara_domain_lock">Domain lock</label></th><td><input id="afara_domain_lock" class="regular-text" type="text" name="afara_domain_lock" value="<?php echo esc_attr((string) get_option('afara_domain_lock', '')); ?>" placeholder="<?php echo esc_attr($hostname); ?>"><p class="description">Enter the site's hostname (without https:// or path). Changing domains disables access until updated.</p></td></tr>
             </table>
             <?php submit_button('Save settings'); ?>
