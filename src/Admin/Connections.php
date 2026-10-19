@@ -4,13 +4,16 @@ declare(strict_types=1);
 namespace Afara\Admin;
 
 use Afara\Audit\ActivityLog;
+use Afara\OAuth\Grants;
 
 /**
  * The agents that can reach Afara: every Application Password belonging to an
- * administrator (only administrators pass Afara's permission gate).
+ * administrator (only administrators pass Afara's permission gate), and every
+ * OAuth app an administrator approved.
  *
- * Revoking deletes that Application Password through WordPress core, so the
- * agent using it is refused on its very next request.
+ * Revoking deletes that Application Password through WordPress core, or the
+ * OAuth grant (which voids all its tokens), so the agent is refused on its
+ * very next request.
  */
 final class Connections
 {
@@ -23,15 +26,40 @@ final class Connections
     }
 
     /**
-     * @return list<array{user_id: int, user_login: string, uuid: string, name: string, created: int, last_used: ?int, afara: ?array<string, mixed>, can_revoke: bool}>
+     * @return list<array{type: string, user_id: int, user_login: string, uuid: string, name: string, created: int, last_used: ?int, afara: ?array<string, mixed>, can_revoke: bool}>
      */
     public static function all(): array
     {
-        if (!class_exists(\WP_Application_Passwords::class) || !function_exists('get_users')) {
+        if (!function_exists('get_users')) {
             return [];
         }
         $users = get_users(['capability' => 'manage_options', 'fields' => ['ID', 'user_login'], 'number' => self::MAX_USERS]);
         $rows = [];
+        $logins = [];
+        foreach ($users as $user) {
+            $logins[(int) $user->ID] = (string) $user->user_login;
+        }
+        // OAuth apps approved on the consent screen.
+        foreach (Grants::all() as $grantId => $grant) {
+            $userId = (int) ($grant['user_id'] ?? 0);
+            if (!isset($logins[$userId])) {
+                continue;
+            }
+            $rows[] = [
+                'type' => 'oauth',
+                'user_id' => $userId,
+                'user_login' => $logins[$userId],
+                'uuid' => (string) $grantId,
+                'name' => (string) ($grant['client_name'] ?? ''),
+                'created' => (int) ($grant['created'] ?? 0),
+                'last_used' => isset($grant['last_used']) ? (int) $grant['last_used'] : null,
+                'afara' => ActivityLog::lastForConnection($userId, (string) $grantId),
+                'can_revoke' => current_user_can('edit_user', $userId),
+            ];
+        }
+        if (!class_exists(\WP_Application_Passwords::class)) {
+            $users = [];
+        }
         foreach ($users as $user) {
             $userId = (int) $user->ID;
             foreach (\WP_Application_Passwords::get_user_application_passwords($userId) as $item) {
@@ -41,6 +69,7 @@ final class Connections
                 }
                 // Only the fields shown below leave this method. The password hash never does.
                 $rows[] = [
+                    'type' => 'application_password',
                     'user_id' => $userId,
                     'user_login' => (string) $user->user_login,
                     'uuid' => $uuid,
@@ -97,7 +126,9 @@ final class Connections
             wp_safe_redirect(add_query_arg('afara_revoked', 'missing', $back));
             exit;
         }
-        $deleted = \WP_Application_Passwords::delete_application_password($userId, $uuid);
+        $deleted = $row['type'] === 'oauth'
+            ? Grants::revoke($uuid)
+            : \WP_Application_Passwords::delete_application_password($userId, $uuid);
         wp_safe_redirect(add_query_arg('afara_revoked', $deleted === true ? 'ok' : 'failed', $back));
         exit;
     }

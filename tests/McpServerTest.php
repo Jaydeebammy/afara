@@ -52,6 +52,12 @@ namespace {
     function check(bool $ok, string $label): void {
         if (!$ok) { throw new RuntimeException($label); }
     }
+    spl_autoload_register(static function (string $class): void {
+        if (str_starts_with($class, 'Afara\\')) {
+            $path = dirname(__DIR__) . '/src/' . str_replace('\\', '/', substr($class, 6)) . '.php';
+            if (is_file($path)) { require_once $path; }
+        }
+    });
     require dirname(__DIR__) . '/src/Security/PermissionGate.php';
     require dirname(__DIR__) . '/src/Mcp/Server.php';
     require dirname(__DIR__) . '/src/Audit/ActivityLog.php';

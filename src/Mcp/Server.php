@@ -61,8 +61,17 @@ final class Server
             return;
         }
         $code = is_object($error) && method_exists($error, 'get_error_code') ? (string) $error->get_error_code() : '';
+        self::recordRefusal($code !== '' ? $code : 'afara_sign_in_failed');
+    }
+
+    /** Log one refusal for this HTTP request; later calls in the same request are ignored. */
+    public static function recordRefusal(string $reason): void
+    {
+        if (self::$refusalRecorded) {
+            return;
+        }
         self::$refusalRecorded = true;
-        ActivityLog::refused($code !== '' ? $code : 'afara_sign_in_failed');
+        ActivityLog::refused($reason);
     }
 
     /** Test hook: start a fresh simulated request. */
@@ -133,10 +142,7 @@ final class Server
         if ($reason === null) {
             return true;
         }
-        if (!self::$refusalRecorded) {
-            self::$refusalRecorded = true;
-            ActivityLog::refused($reason);
-        }
+        self::recordRefusal($reason);
         return false;
     }
 
