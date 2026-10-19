@@ -1,17 +1,40 @@
-# Architecture — foundation
+# Architecture
 
-Afara uses WordPress 6.9+ Abilities API and plans to integrate the separately installed official WordPress MCP Adapter.
+Afara uses the WordPress 6.9+ Abilities API and the separately activated official
+WordPress MCP Adapter 0.7.1+. It registers server `afara` on `mcp_adapter_init`,
+using the adapter's `HttpTransport` at the `rest_url('afara/v1/mcp')` endpoint.
+The plugin neither bundles the adapter nor implements a parallel MCP protocol.
 
-## Current request boundary
+## Request boundary
 
-Authenticated WordPress account → ability permission callback → disabled-by-default Afara switch → exact hostname lock → read-only restriction for future mutations → registered ability.
+HTTPS → WordPress REST authentication (Application Passwords for remote clients)
+→ server permission callback → authenticated administrator (`manage_options`)
+→ off-by-default switch → exact `home_url()` hostname lock → ability permission
+callback → read-only implementation and existing path/source guards.
 
-Only `afara/site-context` is currently registered. The ability deliberately opts out of the generic WordPress REST Abilities endpoint while opting in to MCP metadata. **No MCP transport has been configured by Afara yet**; a separately installed adapter may still expose opted-in abilities through its default server, subject to authentication and permissions.
+The same gate is evaluated per request and per ability execution. Registration
+must not depend on a current user at REST initialization. Disabling Afara or
+changing the domain lock denies existing sessions as well as new connections.
 
-## Planned
+The dedicated server explicitly allowlists `afara/site-context`, `afara/read-file`
+and `afara/list-directory`, with no resources or prompts. These abilities opt out
+of both the generic REST Abilities endpoint and the adapter default server's
+public discovery/execution meta-tools. Source reads retain size/range limits,
+UTF-8 validation, theme/plugin scope, sensitive-name exclusions and symlink and
+traversal rejection. Read-only mode remains enabled by default; turning it off
+does not add write abilities. There is no arbitrary PHP execution.
 
-Dedicated transport selection, allow-listed file inspection, sandbox recovery, audit logs, optional OAuth and Elementor abilities are future milestones. Arbitrary PHP execution is not isolated by a folder boundary. No security guarantee is claimed for unimplemented features.
+An absent or unsupported adapter leaves local registration and admin pages usable
+without creating an Afara transport. Connect reports configuration prerequisites
+without booting REST manually or claiming a live external connection. Afara uses
+the adapter's null error/observability handlers to avoid logging credentials or
+source content. Server creation errors emit a code-only
+`afara_mcp_registration_failed` action for optional local monitoring.
 
-## UI
+[Integration choices and official API references](MCP.md).
 
-WordPress admin hosts the native navigation. The design reference is the Figma Afara Admin UI; Connect and Abilities are currently partial implementations.
+## Future scope
+
+Sandbox recovery, audit logs, optional OAuth, Elementor editing and file mutations
+remain unimplemented. A folder boundary is not a PHP execution sandbox. No
+security guarantees are claimed for those future features.

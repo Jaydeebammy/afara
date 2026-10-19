@@ -73,7 +73,7 @@ final class ReadFile
                     'truncated' => ($offset + strlen($content)) < $size,
                 ];
             },
-            'meta' => ['show_in_rest' => false, 'mcp' => ['public' => true], 'annotations' => ['readonly' => true]],
+            'meta' => ['show_in_rest' => false, 'mcp' => ['public' => false], 'annotations' => ['readonly' => true, 'destructive' => false]],
         ]);
     }
 }

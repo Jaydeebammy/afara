@@ -48,7 +48,7 @@ final class SettingsPage
         <div class="wrap afara-admin">
           <h1>Afara</h1>
           <p>An AI agent, working inside WordPress.</p>
-          <div class="notice notice-warning inline"><p><strong>Development software:</strong> Do not enable on a production site. No remote MCP server or PHP execution is included in this foundation build.</p></div>
+          <div class="notice notice-warning inline"><p><strong>Development software:</strong> Use a disposable staging site. The official MCP Adapter provides authenticated read-only access when configured. Arbitrary PHP execution and file mutations are unavailable.</p></div>
           <h2>Connection settings</h2>
           <p>Status: <strong><?php echo esc_html($gate->canRead() ? 'Enabled for administrators' : 'Disabled or domain mismatch'); ?></strong></p>
           <form method="post" action="options.php">

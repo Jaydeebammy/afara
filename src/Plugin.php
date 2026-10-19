@@ -10,11 +10,13 @@ use Afara\Security\PermissionGate;
 use Afara\Abilities\SiteContext;
 use Afara\Abilities\ReadFile;
 use Afara\Abilities\ListDirectory;
+use Afara\Mcp\Server;
 
 final class Plugin
 {
     public function boot(): void
     {
+        (new Server(new PermissionGate()))->register();
         (new SettingsPage())->register();
         (new ConnectPage())->register();
         (new AbilitiesPage())->register();
