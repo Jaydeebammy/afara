@@ -85,6 +85,7 @@ try:
         raise AssertionError('WordPress test server did not start')
     wp('option', 'delete', 'afara_enabled')
     wp('option', 'delete', 'afara_domain_lock')
+    wp('option', 'delete', 'afara_activity_log')
     password = wp('user', 'application-password', 'create', 'admin', 'afara-http-test', '--porcelain')
     credentials = 'admin:' + password
     passwords = json.loads(wp('user', 'application-password', 'list', 'admin', '--format=json'))
@@ -148,6 +149,25 @@ try:
     wp('user', 'application-password', 'delete', 'admin', admin_password_id)
     admin_password_id = None
     check(request(rpc('tools/list'), credentials, session)[0] == 401, 'revoked Application Password denied on existing session')
+
+    log = json.loads(wp('option', 'get', 'afara_activity_log', '--format=json'))
+    refused = [e for e in log if e['result'] == 'refused']
+    reasons = [e['reason'] for e in refused]
+    for reason in ['afara_disabled', 'afara_domain_mismatch', 'afara_not_signed_in', 'incorrect_password', 'afara_not_admin']:
+        check(reason in reasons, 'activity log records refusal: ' + reason)
+    check(reasons.count('incorrect_password') >= 1 and sum(e['count'] for e in refused if e['reason'] == 'incorrect_password') == 2,
+          'invalid and revoked passwords both counted')
+    editor = next(e for e in refused if e['reason'] == 'afara_not_admin')
+    check(editor['user_login'] == 'afara-http-editor' and editor['connection'] == 'afara-http-test', 'refusal names the account and connection')
+    ran = [e for e in log if e['result'] in ('success', 'error')]
+    check(any(e['ability'] == 'afara/site-context' and e['result'] == 'success' and e['user_login'] == 'admin'
+              and e['connection'] == 'afara-http-test' for e in ran), 'success names the account and connection')
+    check(any(e['reason'] == 'afara_path_denied' for e in ran), 'denied path logged with reason')
+    serialized_log = json.dumps(log)
+    for secret in [password, editor_password, 'sensitive-config-fixture', 'hidden-fixture', 'wp-config', '127.0.0.1']:
+        check(secret not in serialized_log, 'activity log stores no secrets, paths or IPs')
+    check(all(sorted(e) == sorted(['time', 'user_id', 'user_login', 'connection', 'ability', 'result', 'reason', 'count']) for e in log),
+          'activity log fields are exactly the documented set')
     print(f'::notice::{checks} WordPress HTTP integration checks passed')
 finally:
     if fixture:
@@ -158,3 +178,4 @@ finally:
         wp('user', 'delete', editor_id, '--yes')
     wp('option', 'delete', 'afara_enabled')
     wp('option', 'delete', 'afara_domain_lock')
+    wp('option', 'delete', 'afara_activity_log')

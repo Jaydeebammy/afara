@@ -32,7 +32,7 @@ If testing remote MCP from Codex, make the staging site reachable over valid HTT
 4. Invalid password, non-administrator, disabled switch, changed hostname, insecure HTTP and revoked password are denied.
 5. Exactly three read-only tools appear to the MCP client; unknown and destructive abilities cannot be invoked.
 6. Site-context, list-directory and read-file work for permitted fixtures and reject traversal, hidden files, secrets and symlinks.
-7. Activity Log captures allowed ability executions without storing credentials, request content or file contents.
+7. Activity Log records ability executions and every refused MCP request (Afara off, domain mismatch, plain HTTP, not signed in, not an administrator, wrong or revoked Application Password), with the account, the Application Password label and a reason code. It never stores credentials, request content, file contents, paths or IP addresses. Repeated identical refusals within 10 minutes are counted on one row.
 8. Sandbox defaults to safe mode; toggling does not enable arbitrary execution.
 9. Check actual webserver TLS trust, Authorization forwarding, proxy HTTPS signaling, and direct browser access to sandbox controls.
 10. Record WordPress/PHP/Adapter versions and attach screenshots plus sanitized logs to the relevant PRs.
