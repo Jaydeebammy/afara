@@ -36,7 +36,8 @@ final class SiteContext
                     'theme' => $theme->get('Name'),
                 ];
             },
-            'meta' => ['show_in_rest' => false, 'mcp' => ['public' => true], 'annotations' => ['readonly' => true]],
+            // Explicit custom-server registration; do not expose via default-server meta-tools.
+            'meta' => ['show_in_rest' => false, 'mcp' => ['public' => false], 'annotations' => ['readonly' => true, 'destructive' => false]],
         ]);
     }
 }

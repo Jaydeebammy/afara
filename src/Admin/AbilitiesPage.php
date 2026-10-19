@@ -52,7 +52,7 @@ final class AbilitiesPage
                 <?php endforeach; ?>
                 </tbody>
             </table>
-            <p class="description"><?php esc_html_e('MCP transport is not yet connected. Registration in WordPress does not mean an agent can access this ability remotely.', 'afara'); ?></p>
+            <p class="description"><?php esc_html_e('The dedicated Afara MCP server exposes only the three read-only abilities. See Connect for adapter requirements, HTTPS authentication and connection setup. Availability here does not verify a remote connection.', 'afara'); ?></p>
         </div>
         <?php
     }

@@ -1,21 +1,68 @@
-name: PHP syntax
+name: PHP and MCP integration
 on:
   push:
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  lint:
+  unit:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.1', '8.3', '8.4']
     steps:
       - uses: actions/checkout@v4
-      - name: PHP version
-        run: php -v
-      - name: Check PHP syntax
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Syntax and all isolated tests
+        run: bash tests/run.sh
+  wordpress:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            wordpress: '6.9'
+          - php: '8.3'
+            wordpress: latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: afara-disposable-test
+          MYSQL_DATABASE: afara_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pafara-disposable-test"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      AFARA_WP_PATH: /tmp/afara-wp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli
+          tools: wp-cli
+          coverage: none
+      - name: Install disposable WordPress and official MCP Adapter
         run: |
-          find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -r -n1 php -l
-      - name: Permission and path guard tests
+          wp core download --path="$AFARA_WP_PATH" --version="${{ matrix.wordpress }}"
+          wp core verify-checksums --path="$AFARA_WP_PATH"
+          wp config create --path="$AFARA_WP_PATH" --dbname=afara_test --dbuser=root --dbpass=afara-disposable-test --dbhost=127.0.0.1:3306
+          wp config set WP_ENVIRONMENT_TYPE local --path="$AFARA_WP_PATH"
+          wp core install --path="$AFARA_WP_PATH" --url=https://localhost:8080 --title=Afara-Test --admin_user=admin --admin_password=disposable-test-only --admin_email=admin@example.test --skip-email
+          wp plugin install https://github.com/WordPress/mcp-adapter/releases/download/v0.7.1/mcp-adapter.zip --activate --path="$AFARA_WP_PATH"
+          ln -s "$GITHUB_WORKSPACE" "$AFARA_WP_PATH/wp-content/plugins/afara"
+          wp plugin activate afara --path="$AFARA_WP_PATH"
+      - name: Real REST authentication and MCP functional checks
         run: |
-          php tests/PermissionGateTest.php
-          php tests/PathGuardTest.php
-          php tests/ReadablePathsTest.php
-          php tests/SourcePolicyTest.php
+          php -S 127.0.0.1:8080 -t "$AFARA_WP_PATH" tests/integration/router.php > /tmp/afara-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          python3 tests/integration/http_test.py
