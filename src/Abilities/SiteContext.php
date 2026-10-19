@@ -16,7 +16,7 @@ final class SiteContext
         wp_register_ability('afara/site-context', [
             'label' => __('Site context', 'afara'),
             'description' => __('Read basic environment information about this WordPress installation.', 'afara'),
-            'category' => 'data-retrieval',
+            'category' => 'afara',
             'input_schema' => ['type' => 'object', 'properties' => new \stdClass()],
             'output_schema' => [
                 'type' => 'object',
