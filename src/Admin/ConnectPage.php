@@ -122,7 +122,9 @@ final class ConnectPage
               <span class="dashicons dashicons-warning" aria-hidden="true"></span>
               <div>
                 <p id="afara-revoke-title" class="afara-status__title"><strong><?php echo esc_html(sprintf(__('Revoke “%1$s” for %2$s?', 'afara'), $confirm['name'], $confirm['user_login'])); ?></strong></p>
-                <p id="afara-revoke-detail" class="afara-status__detail"><?php esc_html_e('Any agent using it is refused straight away. This can’t be undone, but you can create a new Application Password later.', 'afara'); ?></p>
+                <p id="afara-revoke-detail" class="afara-status__detail"><?php echo esc_html(($confirm['type'] ?? '') === 'oauth'
+                    ? __('The app is signed out straight away and all its tokens stop working. It can ask for approval again later.', 'afara')
+                    : __('Any agent using it is refused straight away. This can’t be undone, but you can create a new Application Password later.', 'afara')); ?></p>
                 <form class="afara-status__action" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                   <input type="hidden" name="action" value="<?php echo esc_attr(Connections::ACTION); ?>">
                   <input type="hidden" name="user_id" value="<?php echo esc_attr((string) $confirm['user_id']); ?>">
@@ -152,7 +154,7 @@ final class ConnectPage
             <?php else : ?>
               <?php foreach ($rows as $row) : $afara = $row['afara']; ?>
               <tr<?php echo $confirm !== null && $confirm['uuid'] === $row['uuid'] ? ' class="afara-connections__row--confirming"' : ''; ?>>
-                <th scope="row"><?php echo esc_html($row['name'] !== '' ? $row['name'] : __('(unnamed)', 'afara')); ?></th>
+                <th scope="row"><?php echo esc_html($row['name'] !== '' ? $row['name'] : __('(unnamed)', 'afara')); ?><br><span class="description"><?php echo esc_html(($row['type'] ?? '') === 'oauth' ? __('OAuth app', 'afara') : __('Application Password', 'afara')); ?></span></th>
                 <td><?php echo esc_html($row['user_login']); ?><?php echo $row['user_id'] === get_current_user_id() ? ' <span class="afara-badge">' . esc_html__('You', 'afara') . '</span>' : ''; ?></td>
                 <td><?php echo esc_html(self::when($row['created'])); ?></td>
                 <td><?php echo esc_html(self::when($row['last_used'])); ?></td>
@@ -176,6 +178,29 @@ final class ConnectPage
             </tbody>
           </table>
           <p><a href="<?php echo esc_url($profile); ?>"><?php esc_html_e('Create a new connection in your profile', 'afara'); ?></a></p>
+        <?php
+    }
+
+    /** OAuth: one URL to paste into apps that sign in with OAuth. */
+    private function renderOAuth(string $endpoint): void
+    {
+        $reason = \Afara\OAuth\Config::unavailableReason();
+        ?>
+          <div class="afara-card" id="afara-oauth">
+            <h2><?php esc_html_e('Connect with OAuth', 'afara'); ?></h2>
+            <?php if ($reason === null) : ?>
+              <p><?php esc_html_e('For apps that sign in with OAuth (for example, a custom connector in Claude). Paste this server URL into the app. It will open an approval page here; nothing is shared until you click Allow.', 'afara'); ?></p>
+              <p><code><?php echo esc_html($endpoint); ?></code></p>
+              <p class="description"><?php esc_html_e('Read-only access. Tokens last an hour and renew automatically; revoke the app below to sign it out.', 'afara'); ?></p>
+            <?php else : ?>
+              <p><?php echo esc_html(sprintf(__('Not available: %s.', 'afara'), \Afara\Admin\ActivityLogPage::reason($reason))); ?></p>
+              <?php if (in_array($reason, ['oauth_disabled', 'afara_disabled', 'afara_domain_mismatch'], true)) : ?>
+                <p><a class="button button-secondary" href="<?php echo esc_url(admin_url('admin.php?page=afara')); ?>"><?php esc_html_e('Open Afara settings', 'afara'); ?></a></p>
+              <?php elseif ($reason === 'oauth_needs_permalinks') : ?>
+                <p><a class="button button-secondary" href="<?php echo esc_url(admin_url('options-permalink.php')); ?>"><?php esc_html_e('Open Permalink settings', 'afara'); ?></a></p>
+              <?php endif; ?>
+            <?php endif; ?>
+          </div>
         <?php
     }
 
@@ -203,6 +228,7 @@ final class ConnectPage
           </div>
           <p class="description"><?php esc_html_e('This page checks local prerequisites only. It does not verify a remote connection. Use a disposable staging site.', 'afara'); ?></p>
           <?php $this->renderConnections(); ?>
+          <?php $this->renderOAuth($endpoint); ?>
           <div class="afara-card">
             <h2><?php esc_html_e('Connect over HTTPS', 'afara'); ?></h2>
             <p><?php esc_html_e('Install and activate the official WordPress MCP Adapter plugin, version 0.7.1 or newer. Afara requires WordPress 6.9+ and PHP 8.1+. It does not bundle or activate the adapter.', 'afara'); ?></p>

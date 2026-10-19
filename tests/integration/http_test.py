@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 ROOT = Path(os.environ['AFARA_WP_PATH'])
@@ -200,6 +201,140 @@ try:
     wp('user', 'delete', client_id, '--yes')
     wp('option', 'delete', 'afara_quiet_mode')
     wp('option', 'delete', 'afara_quiet_users')
+
+    # OAuth 2.1: discovery from the 401, registration, consent, PKCE, tokens, refresh, revoke.
+    wp('rewrite', 'structure', '/%postname%/')
+    wp('option', 'update', 'afara_oauth_enabled', '1')
+    pretty = '/wp-json/afara/v1/mcp'
+
+    def raw(path, data=None, headers=None, method=None):
+        req = urllib.request.Request(BASE + path, data=data, headers=headers or {}, method=method or ('POST' if data is not None else 'GET'))
+        try:
+            response = urllib.request.urlopen(req, timeout=15)
+        except urllib.error.HTTPError as error:
+            response = error
+        with response:
+            body = response.read()
+            return response.status, {k.lower(): v for k, v in response.headers.items()}, body
+
+    def mcp_bearer(message, token, session=None, path=pretty):
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream', 'Authorization': 'Bearer ' + token}
+        if session:
+            headers['Mcp-Session-Id'] = session
+            headers['MCP-Protocol-Version'] = '2025-11-25'
+        status, h, body = raw(path, json.dumps(message).encode(), headers)
+        return status, h, json.loads(body) if body else None
+
+    def form(path, fields):
+        status, h, body = raw(path, urllib.parse.urlencode(fields).encode(), {'Content-Type': 'application/x-www-form-urlencoded'})
+        return status, h, json.loads(body) if body else None
+
+    def local(url):
+        parts = urllib.parse.urlsplit(url)
+        return parts.path + ('?' + parts.query if parts.query else '')
+
+    status, h, _ = raw(pretty, json.dumps(rpc('tools/list')).encode(), {'Content-Type': 'application/json'})
+    challenge = h.get('www-authenticate', '')
+    check(status == 401 and challenge.startswith('Bearer ') and 'resource_metadata="' in challenge and 'scope="afara:read"' in challenge,
+          'oauth: 401 carries a Bearer challenge with resource_metadata and scope')
+    prm_url = challenge.split('resource_metadata="')[1].split('"')[0]
+    check('/.well-known/oauth-protected-resource/wp-json/afara/v1/mcp' in prm_url, 'oauth: resource metadata at the RFC 9728 path-inserted URL')
+    status, _, body = raw(local(prm_url))
+    prm = json.loads(body)
+    check(status == 200 and prm['resource'].endswith('/wp-json/afara/v1/mcp') and prm['authorization_servers'], 'oauth: protected resource metadata served')
+    issuer = prm['authorization_servers'][0]
+    issuer_path = urllib.parse.urlsplit(issuer).path
+    status, _, body = raw('/.well-known/oauth-authorization-server' + issuer_path)
+    asm = json.loads(body)
+    check(status == 200 and asm['issuer'] == issuer and asm['code_challenge_methods_supported'] == ['S256'], 'oauth: authorization server metadata (RFC 8414 path insertion)')
+    status, _, body = raw('/.well-known/openid-configuration' + issuer_path)
+    check(status == 200 and json.loads(body)['issuer'] == issuer, 'oauth: OpenID-style discovery fallback')
+
+    redirect = 'http://127.0.0.1:33418/callback'
+    status, _, body = raw(local(asm['registration_endpoint']), json.dumps({'client_name': 'Afara CI', 'redirect_uris': [redirect]}).encode(),
+                          {'Content-Type': 'application/json'})
+    client = json.loads(body)
+    check(status == 201 and client['client_id'].startswith('afara-'), 'oauth: dynamic client registration')
+    status, _, body = raw(local(asm['registration_endpoint']), json.dumps({'redirect_uris': ['http://evil.example/cb']}).encode(), {'Content-Type': 'application/json'})
+    check(status == 400, 'oauth: non-HTTPS, non-loopback redirect refused at registration')
+
+    def authorize(verifier):
+        import hashlib
+        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
+        query = {'response_type': 'code', 'client_id': client['client_id'], 'redirect_uri': redirect, 'code_challenge': challenge,
+                 'code_challenge_method': 'S256', 'state': 'ci-state', 'scope': 'afara:read', 'resource': prm['resource']}
+        code = ("$c = \\Afara\\OAuth\\AuthorizationServer::checkAuthorizeRequest(json_decode('" + json.dumps(query) + "', true));"
+                "echo $c['ok'] ? \\Afara\\OAuth\\AuthorizationServer::approve($c['params'], get_current_user_id()) : 'ERR:' . $c['message'];")
+        url = subprocess.check_output(['wp', f'--path={ROOT}', '--user=admin', 'eval', code], text=True).strip()
+        check(url.startswith(redirect + '?code='), 'oauth: consent approval returns a code to the registered redirect')
+        returned = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
+        check(returned.get('state') == 'ci-state' and returned.get('iss') == issuer, 'oauth: redirect carries state and iss')
+        return returned['code']
+
+    def exchange(code, verifier):
+        return form(local(asm['token_endpoint']), {'grant_type': 'authorization_code', 'client_id': client['client_id'], 'code': code,
+                                                    'redirect_uri': redirect, 'code_verifier': verifier, 'resource': prm['resource']})
+
+    verifier = base64.urlsafe_b64encode(os.urandom(40)).decode().rstrip('=')
+    code = authorize(verifier)
+    status, h, body = exchange(code, 'x' * 50)
+    check(status == 400 and body['error'] == 'invalid_grant', 'oauth: wrong PKCE verifier refused')
+    code = authorize(verifier)
+    status, h, tokens = exchange(code, verifier)
+    check(status == 200 and tokens['token_type'] == 'Bearer' and tokens['expires_in'] == 3600 and h.get('cache-control') == 'no-store',
+          'oauth: code exchanged for tokens (no-store)')
+    status, h, body = mcp_bearer(rpc('initialize', {'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 'afara-oauth-ci', 'version': '1'}}),
+                                 tokens['access_token'])
+    oauth_session = h.get('mcp-session-id')
+    check(status == 200 and oauth_session, 'oauth: MCP initialize with a bearer token')
+    mcp_bearer({'jsonrpc': '2.0', 'method': 'notifications/initialized'}, tokens['access_token'], oauth_session)
+    status, _, body = mcp_bearer(rpc('tools/list'), tokens['access_token'], oauth_session)
+    check(status == 200 and {t['name'] for t in body['result']['tools']} == expected, 'oauth: bearer token lists the same three read-only tools')
+    status, _, body = mcp_bearer(rpc('tools/call', {'name': 'afara-site-context', 'arguments': {}}), tokens['access_token'], oauth_session)
+    check(status == 200 and not failed(body), 'oauth: bearer token runs site-context')
+    status, _, _ = raw('/wp-json/wp/v2/users/me', headers={'Authorization': 'Bearer ' + tokens['access_token']})
+    check(status == 401, 'oauth: Afara tokens sign nobody in on other WordPress routes')
+    status, h, _ = mcp_bearer(rpc('tools/list'), 'forged-token', oauth_session)
+    check(status == 401 and 'error="invalid_token"' in h.get('www-authenticate', ''), 'oauth: forged token gets 401 invalid_token')
+    status, _, _ = exchange(code, verifier)
+    check(status == 400, 'oauth: authorization code is single-use')
+    status, _, _ = mcp_bearer(rpc('tools/list'), tokens['access_token'], oauth_session)
+    check(status == 401, 'oauth: replaying a code revokes the tokens it produced')
+
+    code = authorize(verifier)
+    _, _, tokens = exchange(code, verifier)
+    status, _, rotated = form(local(asm['token_endpoint']), {'grant_type': 'refresh_token', 'client_id': client['client_id'], 'refresh_token': tokens['refresh_token']})
+    check(status == 200 and rotated['refresh_token'] != tokens['refresh_token'], 'oauth: refresh rotates the refresh token')
+    status, _, _ = mcp_bearer(rpc('tools/list'), rotated['access_token'], oauth_session)
+    check(status == 200, 'oauth: refreshed access token works')
+    status, _, body = form(local(asm['token_endpoint']), {'grant_type': 'refresh_token', 'client_id': client['client_id'], 'refresh_token': tokens['refresh_token']})
+    check(status == 400 and body['error'] == 'invalid_grant', 'oauth: old refresh token refused')
+    status, _, _ = mcp_bearer(rpc('tools/list'), rotated['access_token'], oauth_session)
+    check(status == 401, 'oauth: refresh replay revokes the whole grant')
+
+    code = authorize(verifier)
+    _, _, tokens = exchange(code, verifier)
+    mcp_bearer(rpc('tools/call', {'name': 'afara-site-context', 'arguments': {}}), tokens['access_token'], oauth_session)
+    listing = json.loads(subprocess.check_output(['wp', f'--path={ROOT}', '--user=admin', 'eval',
+                                                  'echo wp_json_encode(\\Afara\\Admin\\Connections::all());'], text=True))
+    app = next((c for c in listing if c.get('type') == 'oauth' and c['name'] == 'Afara CI'), None)
+    check(app is not None and app['can_revoke'] and app['afara'] is not None, 'oauth: approved app listed in Connections with its activity')
+    oauth_log = json.loads(wp('option', 'get', 'afara_activity_log', '--format=json'))
+    check(any(e['connection'] == 'Afara CI' and e['result'] == 'success' for e in oauth_log), 'oauth: Activity log names the OAuth app')
+    check(any(e['reason'] == 'afara_invalid_token' for e in oauth_log), 'oauth: forged token logged as refused')
+    check(all(tokens['access_token'] not in json.dumps(v) for v in [oauth_log, listing]), 'oauth: tokens never appear in the log or listing')
+    stored = wp('db', 'query', "SELECT option_value FROM wp_options WHERE option_name LIKE 'afara_oauth%'", '--skip-column-names')
+    check(tokens['access_token'] not in stored and tokens['refresh_token'] not in stored and code not in stored, 'oauth: database holds only hashes of codes and tokens')
+    wp('eval', f"\\Afara\\OAuth\\Grants::revoke('{app['uuid']}');")
+    status, _, _ = mcp_bearer(rpc('tools/list'), tokens['access_token'], oauth_session)
+    check(status == 401, 'oauth: revoking the app in Connect signs it out')
+
+    wp('option', 'update', 'afara_oauth_enabled', '0')
+    check(raw(local(prm_url))[0] == 404 and raw('/wp-json/afara/v1/oauth/metadata')[0] == 404, 'oauth: switched off means no discovery documents')
+    status, h, _ = raw(pretty, json.dumps(rpc('tools/list')).encode(), {'Content-Type': 'application/json'})
+    check(status == 401 and 'Bearer' not in h.get('www-authenticate', ''), 'oauth: switched off means no Bearer challenge')
+    wp('option', 'delete', 'afara_oauth_enabled')
+    wp('rewrite', 'structure', '')
     print(f'::notice::{checks} WordPress HTTP integration checks passed')
 finally:
     if fixture:
@@ -213,3 +348,5 @@ finally:
     wp('option', 'delete', 'afara_activity_log')
     wp('option', 'delete', 'afara_quiet_mode')
     wp('option', 'delete', 'afara_quiet_users')
+    wp('option', 'delete', 'afara_oauth_enabled')
+    wp('rewrite', 'structure', '')

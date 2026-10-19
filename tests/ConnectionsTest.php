@@ -121,6 +121,17 @@ check(!str_contains($html, 'Claude Desktop'), 'revoked connection gone from the 
 $_GET = ['afara_revoked' => '<script>'];
 check(!str_contains($render(), 'afara-connections-notice'), 'unknown result ignored');
 
+// OAuth apps are connections too, and revoke kills the grant.
+$grant = \Afara\OAuth\Grants::create('afara-client', 'Claude (OAuth)', 1, 'afara:read', 'https://staging.example.test/?rest_route=/afara/v1/mcp');
+$_GET = [];
+$html = $render();
+check(str_contains($html, 'Claude (OAuth)') && str_contains($html, 'OAuth app') && str_contains($html, 'Application Password'), 'OAuth grants listed with their type');
+$_GET = ['revoke' => $grant, 'revoke_user' => '1'];
+check(str_contains($render(), 'all its tokens stop working'), 'OAuth revoke confirmation explains sign-out');
+$url = $post(['user_id' => '1', 'uuid' => $grant, '_wpnonce' => 'nonce:' . Connections::nonceAction(1, $grant)]);
+check(str_contains($url, 'afara_revoked=ok') && \Afara\OAuth\Grants::find($grant) === null, 'revoking an OAuth app removes its grant');
+check(count(WP_Application_Passwords::$deleted) === 1, 'OAuth revoke doesn’t touch Application Passwords');
+
 // Empty state.
 WP_Application_Passwords::$store = [];
 $_GET = [];

@@ -40,6 +40,9 @@ final class ActivityLogPage
             'afara_read_failed' => __('File couldn’t be read', 'afara'),
             'afara_binary_or_partial_utf8' => __('Not a text file', 'afara'),
             'afara_unexpected_error' => __('Unexpected error', 'afara'),
+            'afara_invalid_token' => __('Expired or revoked OAuth token', 'afara'),
+            'oauth_disabled' => __('OAuth sign-in is turned off in Afara settings', 'afara'),
+            'oauth_needs_permalinks' => __('OAuth needs pretty permalinks (Settings → Permalinks, anything but “Plain”)', 'afara'),
             'unknown' => __('Unrecognised reason', 'afara'),
         ];
         return $reasons[$code] ?? $code;

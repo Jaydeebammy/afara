@@ -40,6 +40,10 @@ final class SettingsPage
             'type' => 'array', 'default' => [],
             'sanitize_callback' => [QuietMode::class, 'sanitizeUsers'],
         ]);
+        register_setting('afara_settings', \Afara\OAuth\Config::OPTION_ENABLED, [
+            'type' => 'string', 'default' => '0',
+            'sanitize_callback' => static fn ($value): string => $value === '1' ? '1' : '0',
+        ]);
         register_setting('afara_settings', 'afara_domain_lock', [
             'type' => 'string', 'default' => '',
             'sanitize_callback' => static function ($value): string {
@@ -205,6 +209,7 @@ final class SettingsPage
               <tr><th scope="row">AI access</th><td><label><input type="hidden" name="afara_enabled" value="0"><input type="checkbox" name="afara_enabled" value="1" aria-describedby="afara-status-title" <?php checked(get_option('afara_enabled', '0'), '1'); ?>> Enable Afara (off by default)</label></td></tr>
               <tr><th scope="row">Read-only mode</th><td><label><input type="hidden" name="afara_read_only" value="0"><input type="checkbox" name="afara_read_only" value="1" <?php checked(get_option('afara_read_only', '1'), '1'); ?>> Restrict changes</label><p class="description">This option will govern future write abilities. Leave it enabled.</p></td></tr>
               <tr><th scope="row"><label for="afara_domain_lock">Domain lock</label></th><td><input id="afara_domain_lock" class="regular-text" type="text" name="afara_domain_lock" value="<?php echo esc_attr($locked !== '' ? $locked : $hostname); ?>" aria-describedby="afara-domain-lock-help"><p id="afara-domain-lock-help" class="description"><?php echo $locked === '' ? esc_html__('Pre-filled with this site’s address. Save to lock Afara to it.', 'afara') . ' ' : ''; ?>Enter the site's hostname (without https:// or path). Changing domains disables access until updated.</p></td></tr>
+              <tr><th scope="row"><?php esc_html_e('OAuth sign-in', 'afara'); ?></th><td><label><input type="hidden" name="afara_oauth_enabled" value="0"><input type="checkbox" name="afara_oauth_enabled" value="1" aria-describedby="afara-oauth-help" <?php checked(get_option('afara_oauth_enabled', '0'), '1'); ?>> <?php esc_html_e('Let apps sign in with OAuth (off by default)', 'afara'); ?></label><p id="afara-oauth-help" class="description"><?php esc_html_e('For apps that can’t use an Application Password. Each app must be approved by an administrator on an approval page, and gets read-only access you can revoke in Connect.', 'afara'); ?></p></td></tr>
             </table>
             <?php $this->renderQuietMode(); ?>
             <?php submit_button('Save settings'); ?>
