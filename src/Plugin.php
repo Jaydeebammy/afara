@@ -7,6 +7,8 @@ use Afara\Admin\SettingsPage;
 use Afara\Admin\ConnectPage;
 use Afara\Admin\AbilitiesPage;
 use Afara\Admin\ActivityLogPage;
+use Afara\Admin\SandboxPage;
+use Afara\Sandbox\SandboxState;
 use Afara\Security\PermissionGate;
 use Afara\Abilities\SiteContext;
 use Afara\Abilities\ReadFile;
@@ -22,6 +24,14 @@ final class Plugin
         (new ConnectPage())->register();
         (new AbilitiesPage())->register();
         (new ActivityLogPage())->register();
+        (new SandboxPage())->register();
+        add_action('admin_init', static function (): void {
+            if (current_user_can('manage_options') && get_option('afara_sandbox_initialized', '0') !== '1') {
+                if (SandboxState::prepare()) {
+                    update_option('afara_sandbox_initialized', '1', false);
+                }
+            }
+        });
         add_action('admin_enqueue_scripts', static function (string $hook): void {
             if (str_contains($hook, 'afara')) {
                 wp_enqueue_style('afara-admin', plugins_url('assets/admin.css', AFARA_PLUGIN_FILE), [], AFARA_VERSION);
