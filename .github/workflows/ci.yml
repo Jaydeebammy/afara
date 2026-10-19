@@ -47,13 +47,19 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysqli
+          extensions: mysqli, zip
           tools: wp-cli
           coverage: none
       - name: Install disposable WordPress and official MCP Adapter
         run: |
           exec > >(tee /tmp/afara-wp-setup.log) 2>&1
-          wp core download --path="$AFARA_WP_PATH" --version="${{ matrix.wordpress }}"
+          # Use ZIP to preserve long core filenames on WP-CLI versions whose tar
+          # extraction truncates them. Verify all core files before loading WordPress.
+          if [ "${{ matrix.wordpress }}" = latest ]; then
+            wp core download https://wordpress.org/latest.zip --path="$AFARA_WP_PATH"
+          else
+            wp core download --path="$AFARA_WP_PATH" --version="${{ matrix.wordpress }}"
+          fi
           wp core verify-checksums --path="$AFARA_WP_PATH"
           wp config create --path="$AFARA_WP_PATH" --dbname=afara_test --dbuser=root --dbpass=afara-disposable-test --dbhost=127.0.0.1:3306
           wp config set WP_ENVIRONMENT_TYPE local --path="$AFARA_WP_PATH"
