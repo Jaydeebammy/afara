@@ -34,9 +34,10 @@ If testing remote MCP from Codex, make the staging site reachable over valid HTT
 6. Site-context, list-directory and read-file work for permitted fixtures and reject traversal, hidden files, secrets and symlinks.
 7. Activity Log records ability executions and every refused MCP request (Afara off, domain mismatch, plain HTTP, not signed in, not an administrator, wrong or revoked Application Password), with the account, the Application Password label and a reason code. It never stores credentials, request content, file contents, paths or IP addresses. Repeated identical refusals within 10 minutes are counted on one row.
 8. Connect → Connections lists every administrator's Application Password with created, last-used and last-Afara-activity times. Revoke asks for confirmation, then deletes that Application Password through WordPress core (POST, nonce-checked, only for accounts you can edit); the agent using it is refused from its next request.
-9. Sandbox defaults to safe mode; toggling does not enable arbitrary execution.
-10. Check actual webserver TLS trust, Authorization forwarding, proxy HTTPS signaling, and direct browser access to sandbox controls.
-11. Record WordPress/PHP/Adapter versions and attach screenshots plus sanitized logs to the relevant PRs.
+9. Settings → Quiet mode hides Afara's menu and Plugins/Updates rows from administrators not ticked; the person saving is always included. A hidden administrator can still reach Afara by URL and connect an agent. `define('AFARA_QUIET_MODE_OFF', true);` in wp-config.php shows it to everyone again.
+10. Sandbox defaults to safe mode; toggling does not enable arbitrary execution.
+11. Check actual webserver TLS trust, Authorization forwarding, proxy HTTPS signaling, and direct browser access to sandbox controls.
+12. Record WordPress/PHP/Adapter versions and attach screenshots plus sanitized logs to the relevant PRs.
 
 **Stop testing and report** if a write/PHP execution tool unexpectedly appears, permission tests allow a non-administrator, credentials appear in logs, or a denied file becomes readable.
 

@@ -33,3 +33,4 @@
 .afara-admin .afara-button-danger,.afara-admin .afara-button-danger:hover,.afara-admin .afara-button-danger:focus{background:#d63638;border-color:#d63638;color:#fff}
 .afara-admin .afara-button-danger:hover{background:#b32d2e;border-color:#b32d2e}
 .afara-admin #afara-revoke-confirm:focus{outline:2px solid #2271b1;outline-offset:2px}
+.afara-admin .afara-quiet-user{display:inline-block;margin:4px 0}

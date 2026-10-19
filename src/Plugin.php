@@ -6,6 +6,7 @@ namespace Afara;
 use Afara\Admin\SettingsPage;
 use Afara\Admin\ConnectPage;
 use Afara\Admin\Connections;
+use Afara\Admin\QuietMode;
 use Afara\Admin\AbilitiesPage;
 use Afara\Admin\ActivityLogPage;
 use Afara\Admin\SandboxPage;
@@ -24,6 +25,7 @@ final class Plugin
         (new SettingsPage())->register();
         (new ConnectPage())->register();
         (new Connections())->register();
+        (new QuietMode())->register();
         (new AbilitiesPage())->register();
         (new ActivityLogPage())->register();
         (new SandboxPage())->register();
