@@ -17,12 +17,28 @@ ROUTE = '/?rest_route=/afara/v1/mcp'
 checks = 0
 
 
+last_pass = '(none)'
+
+
 def check(condition, label):
-    global checks
+    global checks, last_pass
     if not condition:
         raise AssertionError(label)
     checks += 1
+    last_pass = label
     print('PASS:', label)
+
+
+def annotate(error):
+    # CI logs aren't always readable remotely; annotations are.
+    message = f'{type(error).__name__}: {error} | last passing check: {last_pass}'.replace('%', '%25').replace('\n', '%0A')
+    print(f'::error title=Integration check failed::{message}')
+    try:
+        for line in Path('/tmp/afara-http.log').read_text(errors='replace').splitlines()[-200:]:
+            if 'PHP' in line and ('Fatal' in line or 'Warning' in line or 'Error' in line or 'Deprecated' in line):
+                print('::error title=PHP::' + line[-900:].replace('%', '%25'))
+    except OSError:
+        pass
 
 
 def wp(*args):
@@ -336,6 +352,9 @@ try:
     wp('option', 'delete', 'afara_oauth_enabled')
     wp('rewrite', 'structure', '')
     print(f'::notice::{checks} WordPress HTTP integration checks passed')
+except Exception as error:
+    annotate(error)
+    raise
 finally:
     if fixture:
         shutil.rmtree(fixture)
