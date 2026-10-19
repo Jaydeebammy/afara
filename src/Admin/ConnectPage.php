@@ -80,6 +80,105 @@ final class ConnectPage
         ];
     }
 
+    private static function when(?int $stamp): string
+    {
+        if ($stamp === null || $stamp <= 0) {
+            return __('Never', 'afara');
+        }
+        return function_exists('wp_date') ? (string) wp_date('Y-m-d H:i', $stamp) : gmdate('Y-m-d H:i', $stamp) . ' UTC';
+    }
+
+    /** Connections list, revoke confirmation and the result of a revoke. */
+    private function renderConnections(): void
+    {
+        $rows = Connections::all();
+        $profile = admin_url('profile.php#application-passwords-section');
+        // Display-only parameters; changing data needs the nonce-checked POST below.
+        $result = isset($_GET['afara_revoked']) && is_string($_GET['afara_revoked']) ? $_GET['afara_revoked'] : '';
+        $confirmUser = isset($_GET['revoke_user']) ? (int) $_GET['revoke_user'] : 0;
+        $confirmUuid = isset($_GET['revoke']) && is_string($_GET['revoke']) ? strtolower($_GET['revoke']) : '';
+        $confirm = null;
+        foreach ($rows as $row) {
+            if ($row['user_id'] === $confirmUser && hash_equals($row['uuid'], $confirmUuid) && $row['can_revoke']) {
+                $confirm = $row;
+            }
+        }
+        $notices = [
+            'ok' => ['success', 'status', __('Connection revoked. The agent using it is refused from its next request.', 'afara')],
+            'failed' => ['error', 'alert', __('That connection couldn’t be revoked. Try again, or remove it from the user’s profile.', 'afara')],
+            'missing' => ['warning', 'alert', __('That connection no longer exists, or you can’t edit that account.', 'afara')],
+        ];
+        $base = admin_url('admin.php?page=afara-connect');
+        ?>
+          <h2 id="afara-connections"><?php esc_html_e('Connections', 'afara'); ?></h2>
+          <?php if (isset($notices[$result])) : [$type, $role, $message] = $notices[$result]; ?>
+            <div id="afara-connections-notice" class="notice notice-<?php echo esc_attr($type); ?> inline afara-save-notice" role="<?php echo esc_attr($role); ?>" tabindex="-1"><p><strong><?php echo esc_html($message); ?></strong></p></div>
+            <script>document.getElementById('afara-connections-notice')?.focus();</script>
+          <?php endif; ?>
+          <p><?php esc_html_e('Each connection is an administrator’s Application Password. Any of them can sign an agent in to Afara. Revoke one you don’t recognise or no longer use.', 'afara'); ?></p>
+
+          <?php if ($confirm !== null) : ?>
+            <div id="afara-revoke-confirm" class="afara-status afara-status--action-needed" role="region" aria-labelledby="afara-revoke-title" aria-describedby="afara-revoke-detail" tabindex="-1">
+              <span class="dashicons dashicons-warning" aria-hidden="true"></span>
+              <div>
+                <p id="afara-revoke-title" class="afara-status__title"><strong><?php echo esc_html(sprintf(__('Revoke “%1$s” for %2$s?', 'afara'), $confirm['name'], $confirm['user_login'])); ?></strong></p>
+                <p id="afara-revoke-detail" class="afara-status__detail"><?php esc_html_e('Any agent using it is refused straight away. This can’t be undone, but you can create a new Application Password later.', 'afara'); ?></p>
+                <form class="afara-status__action" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                  <input type="hidden" name="action" value="<?php echo esc_attr(Connections::ACTION); ?>">
+                  <input type="hidden" name="user_id" value="<?php echo esc_attr((string) $confirm['user_id']); ?>">
+                  <input type="hidden" name="uuid" value="<?php echo esc_attr($confirm['uuid']); ?>">
+                  <?php wp_nonce_field(Connections::nonceAction($confirm['user_id'], $confirm['uuid'])); ?>
+                  <button type="submit" class="button button-primary afara-button-danger"><?php esc_html_e('Revoke connection', 'afara'); ?></button>
+                  <a class="button button-secondary" href="<?php echo esc_url($base . '#afara-connections'); ?>"><?php esc_html_e('Cancel', 'afara'); ?></a>
+                </form>
+              </div>
+            </div>
+            <script>document.getElementById('afara-revoke-confirm')?.focus();</script>
+          <?php endif; ?>
+
+          <table class="widefat striped afara-connections">
+            <caption class="screen-reader-text"><?php esc_html_e('Connections that can sign in to Afara, most recently used first', 'afara'); ?></caption>
+            <thead><tr>
+              <th scope="col"><?php esc_html_e('Connection', 'afara'); ?></th>
+              <th scope="col"><?php esc_html_e('Account', 'afara'); ?></th>
+              <th scope="col"><?php esc_html_e('Created', 'afara'); ?></th>
+              <th scope="col"><?php esc_html_e('Last used anywhere', 'afara'); ?></th>
+              <th scope="col"><?php esc_html_e('Last Afara activity', 'afara'); ?></th>
+              <th scope="col"><span class="screen-reader-text"><?php esc_html_e('Actions', 'afara'); ?></span></th>
+            </tr></thead>
+            <tbody>
+            <?php if ($rows === []) : ?>
+              <tr><td colspan="6"><?php esc_html_e('No connections yet. Create an Application Password to connect your first agent.', 'afara'); ?> <a href="<?php echo esc_url($profile); ?>"><?php esc_html_e('Create one in your profile', 'afara'); ?></a></td></tr>
+            <?php else : ?>
+              <?php foreach ($rows as $row) : $afara = $row['afara']; ?>
+              <tr<?php echo $confirm !== null && $confirm['uuid'] === $row['uuid'] ? ' class="afara-connections__row--confirming"' : ''; ?>>
+                <th scope="row"><?php echo esc_html($row['name'] !== '' ? $row['name'] : __('(unnamed)', 'afara')); ?></th>
+                <td><?php echo esc_html($row['user_login']); ?><?php echo $row['user_id'] === get_current_user_id() ? ' <span class="afara-badge">' . esc_html__('You', 'afara') . '</span>' : ''; ?></td>
+                <td><?php echo esc_html(self::when($row['created'])); ?></td>
+                <td><?php echo esc_html(self::when($row['last_used'])); ?></td>
+                <td><?php
+                    if ($afara === null) {
+                        echo '<span class="description">' . esc_html__('None recorded', 'afara') . '</span>';
+                    } else {
+                        $labels = ['success' => __('Allowed', 'afara'), 'refused' => __('Refused', 'afara'), 'error' => __('Error', 'afara')];
+                        $stamp = strtotime((string) $afara['time']) ?: null;
+                        echo esc_html(self::when($stamp)) . ' · <span class="afara-result afara-result--' . esc_attr((string) $afara['result']) . '">' . esc_html($labels[$afara['result']] ?? (string) $afara['result']) . '</span>';
+                    }
+                ?></td>
+                <td><?php if ($row['can_revoke']) : ?>
+                  <a class="button button-secondary" href="<?php echo esc_url(add_query_arg(['revoke' => $row['uuid'], 'revoke_user' => $row['user_id']], $base) . '#afara-revoke-confirm'); ?>"><?php esc_html_e('Revoke', 'afara'); ?><span class="screen-reader-text"> <?php echo esc_html($row['name']); ?></span></a>
+                <?php else : ?>
+                  <span class="description"><?php esc_html_e('Only that user can revoke', 'afara'); ?></span>
+                <?php endif; ?></td>
+              </tr>
+              <?php endforeach; ?>
+            <?php endif; ?>
+            </tbody>
+          </table>
+          <p><a href="<?php echo esc_url($profile); ?>"><?php esc_html_e('Create a new connection in your profile', 'afara'); ?></a></p>
+        <?php
+    }
+
     public function render(): void
     {
         if (!current_user_can('manage_options')) {
@@ -103,6 +202,7 @@ final class ConnectPage
             </div>
           </div>
           <p class="description"><?php esc_html_e('This page checks local prerequisites only. It does not verify a remote connection. Use a disposable staging site.', 'afara'); ?></p>
+          <?php $this->renderConnections(); ?>
           <div class="afara-card">
             <h2><?php esc_html_e('Connect over HTTPS', 'afara'); ?></h2>
             <p><?php esc_html_e('Install and activate the official WordPress MCP Adapter plugin, version 0.7.1 or newer. Afara requires WordPress 6.9+ and PHP 8.1+. It does not bundle or activate the adapter.', 'afara'); ?></p>

@@ -2,7 +2,11 @@
 declare(strict_types=1);
 
 require __DIR__ . '/McpServerTest.php';
+require dirname(__DIR__) . '/src/Admin/Connections.php';
 require dirname(__DIR__) . '/src/Admin/ConnectPage.php';
+function get_users($args): array { return []; }
+function add_query_arg($a, $b = null, $c = null): string { return ''; }
+function wp_nonce_field($a): void {}
 
 function esc_html($value): string { return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); }
 function esc_url($value): string { return esc_html($value); }

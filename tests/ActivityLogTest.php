@@ -19,7 +19,7 @@ use Afara\Audit\ActivityLog;
 $reset = static function (): void { $GLOBALS['afara_audit_options'] = []; ActivityLog::resetConnection(); };
 
 // Successful execution: who, which connection, which ability.
-ActivityLog::useConnection("Claude Desktop\x07", 'uuid-1');
+ActivityLog::useConnection("Claude Desktop\x07", '6f1c2a8e-0b7d-4e3a-9c55-1d2e3f4a5b6c');
 ActivityLog::record('afara/read-file', true);
 ActivityLog::record('afara/unknown', true);
 $items = ActivityLog::recent();
@@ -28,6 +28,14 @@ check($items[0]['ability'] === 'afara/read-file' && $items[0]['result'] === 'suc
 check($items[0]['user_id'] === 17 && $items[0]['user_login'] === 'jaydee', 'records user ID and login');
 check($items[0]['connection'] === 'Claude Desktop', 'records connection label with control characters removed');
 check($items[0]['reason'] === '', 'success has no reason');
+check($items[0]['connection_id'] === '6f1c2a8e-0b7d-4e3a-9c55-1d2e3f4a5b6c', 'records connection ID');
+check(ActivityLog::lastForConnection(17, '6F1C2A8E-0B7D-4E3A-9C55-1D2E3F4A5B6C')['ability'] === 'afara/read-file', 'finds latest entry for a connection');
+check(ActivityLog::lastForConnection(18, '6f1c2a8e-0b7d-4e3a-9c55-1d2e3f4a5b6c') === null, 'connection lookup is per user');
+check(ActivityLog::lastForConnection(17, 'bogus') === null, 'invalid connection ID finds nothing');
+ActivityLog::useConnection('x', '../../etc');
+ActivityLog::record('afara/site-context', true);
+check(ActivityLog::recent()[0]['connection_id'] === '', 'non-UUID connection ID dropped');
+ActivityLog::useConnection("Claude Desktop", '6f1c2a8e-0b7d-4e3a-9c55-1d2e3f4a5b6c');
 
 // Errors keep the code only; free text is never stored.
 ActivityLog::record('afara/read-file', false, 'afara_path_denied');

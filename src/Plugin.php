@@ -5,6 +5,7 @@ namespace Afara;
 
 use Afara\Admin\SettingsPage;
 use Afara\Admin\ConnectPage;
+use Afara\Admin\Connections;
 use Afara\Admin\AbilitiesPage;
 use Afara\Admin\ActivityLogPage;
 use Afara\Admin\SandboxPage;
@@ -22,6 +23,7 @@ final class Plugin
         (new Server(new PermissionGate()))->register();
         (new SettingsPage())->register();
         (new ConnectPage())->register();
+        (new Connections())->register();
         (new AbilitiesPage())->register();
         (new ActivityLogPage())->register();
         (new SandboxPage())->register();
