@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Afara\Abilities;
 
 use Afara\Security\PermissionGate;
+use Afara\Audit\AuditCallback;
 use Afara\Security\PathGuard;
 use Afara\Security\ReadablePaths;
 
@@ -36,7 +37,7 @@ final class ReadFile
                 ],
             ],
             'permission_callback' => fn (): bool => $this->gate->canRead(),
-            'execute_callback' => static function (array $input) {
+            'execute_callback' => AuditCallback::wrap(static function (array $input) {
                 $path = (string) ($input['path'] ?? '');
                 $file = (new ReadablePaths(new PathGuard(ABSPATH)))->resolve($path);
                 if ($file === null) {
@@ -72,7 +73,7 @@ final class ReadFile
                     'bytes_read' => strlen($content),
                     'truncated' => ($offset + strlen($content)) < $size,
                 ];
-            },
+            }, 'afara/read-file'),
             'meta' => ['show_in_rest' => false, 'mcp' => ['public' => false], 'annotations' => ['readonly' => true, 'destructive' => false]],
         ]);
     }

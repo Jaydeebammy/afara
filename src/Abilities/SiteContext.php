@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Afara\Abilities;
 
 use Afara\Security\PermissionGate;
+use Afara\Audit\AuditCallback;
 
 final class SiteContext
 {
@@ -27,7 +28,7 @@ final class SiteContext
                 ],
             ],
             'permission_callback' => fn (): bool => $this->gate->canRead(),
-            'execute_callback' => static function (): array {
+            'execute_callback' => AuditCallback::wrap(static function (): array {
                 global $wp_version;
                 $theme = wp_get_theme();
                 return [
@@ -35,7 +36,7 @@ final class SiteContext
                     'php_version' => PHP_VERSION,
                     'theme' => $theme->get('Name'),
                 ];
-            },
+            }, 'afara/site-context'),
             // Explicit custom-server registration; do not expose via default-server meta-tools.
             'meta' => ['show_in_rest' => false, 'mcp' => ['public' => false], 'annotations' => ['readonly' => true, 'destructive' => false]],
         ]);
