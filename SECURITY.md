@@ -46,3 +46,7 @@ OAuth is off by default (Settings → OAuth sign-in) and needs HTTPS and pretty 
 - **Storage:** codes and tokens are stored only as SHA-256 hashes.
 - **Scope of tokens:** they are read only on Afara's MCP route. On any other WordPress route an Afara token signs nobody in.
 - **Turning it off:** revoke an app in Connect, turn OAuth off, or turn Afara off, and every token stops working on its next request. Tokens also stop if the approving account stops being an administrator.
+- **Device sign-in (RFC 8628)** is for agents without a browser. The agent shows an 8-letter code with no vowels or look-alike characters, and an administrator types it on Afara's device page.
+  - A link that carries the code only fills in the box. Approval always takes a click on a screen that warns: "If someone sent you this code or link, click Deny". This guards against device-code phishing.
+  - Codes expire after 10 minutes. Device codes are stored only as hashes and are single-use.
+  - Polling too fast gets `slow_down`, and no more than 20 sign-ins can wait for approval at once.

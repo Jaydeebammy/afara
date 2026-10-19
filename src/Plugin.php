@@ -8,6 +8,7 @@ use Afara\Admin\ConnectPage;
 use Afara\Admin\Connections;
 use Afara\Admin\QuietMode;
 use Afara\Admin\AuthorizePage;
+use Afara\Admin\DevicePage;
 use Afara\OAuth\Http as OAuthHttp;
 use Afara\Admin\AbilitiesPage;
 use Afara\Admin\ActivityLogPage;
@@ -29,6 +30,7 @@ final class Plugin
         (new Connections())->register();
         (new QuietMode())->register();
         (new AuthorizePage())->register();
+        (new DevicePage())->register();
         (new OAuthHttp())->register();
         (new AbilitiesPage())->register();
         (new ActivityLogPage())->register();

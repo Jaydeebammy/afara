@@ -40,3 +40,6 @@
 .afara-admin .afara-consent__facts dd{margin:0}
 .afara-admin .afara-consent__actions{display:flex;gap:8px;margin-top:20px}
 @media(max-width:600px){.afara-admin .afara-consent__facts{grid-template-columns:1fr}}
+.afara-admin .afara-device-code{font-family:Menlo,Consolas,monospace;font-size:20px;letter-spacing:.12em}
+.afara-admin input.afara-device-code{text-transform:uppercase;max-width:14em}
+.afara-admin #afara-device-result:focus{outline:2px solid #2271b1;outline-offset:2px}

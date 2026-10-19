@@ -75,8 +75,14 @@ final class Clients
     public static function register(array $body, ?int $now = null): array
     {
         $now ??= time();
-        $redirects = $body['redirect_uris'] ?? null;
-        if (!is_array($redirects) || $redirects === [] || count($redirects) > self::MAX_REDIRECTS) {
+        $grants = $body['grant_types'] ?? ['authorization_code', 'refresh_token'];
+        if (!is_array($grants) || $grants === [] || array_diff($grants, self::GRANT_TYPES) !== []) {
+            return self::error('invalid_client_metadata', 'Unsupported grant_types.');
+        }
+        // Device-only clients (no browser) have nowhere to redirect to.
+        $needsRedirect = in_array('authorization_code', $grants, true);
+        $redirects = $body['redirect_uris'] ?? ($needsRedirect ? null : []);
+        if (!is_array($redirects) || ($needsRedirect && $redirects === []) || count($redirects) > self::MAX_REDIRECTS) {
             return self::error('invalid_redirect_uri', 'Provide between 1 and 10 redirect_uris.');
         }
         $clean = [];
@@ -90,11 +96,7 @@ final class Clients
         if ($method !== 'none') {
             return self::error('invalid_client_metadata', 'Only public clients (token_endpoint_auth_method "none") are supported. PKCE is required.');
         }
-        $grants = $body['grant_types'] ?? ['authorization_code', 'refresh_token'];
-        if (!is_array($grants) || $grants === [] || array_diff($grants, self::GRANT_TYPES) !== []) {
-            return self::error('invalid_client_metadata', 'Unsupported grant_types.');
-        }
-        $responses = $body['response_types'] ?? ['code'];
+        $responses = $body['response_types'] ?? ($needsRedirect ? ['code'] : []);
         if (!is_array($responses) || array_diff($responses, ['code']) !== []) {
             return self::error('invalid_client_metadata', 'Only response_types ["code"] is supported.');
         }
@@ -120,7 +122,7 @@ final class Clients
             'client_name' => $name,
             'redirect_uris' => $clients[$clientId]['redirect_uris'],
             'grant_types' => $clients[$clientId]['grant_types'],
-            'response_types' => ['code'],
+            'response_types' => $needsRedirect ? ['code'] : [],
             'token_endpoint_auth_method' => 'none',
         ]];
     }
@@ -150,6 +152,9 @@ final class Clients
     /** True when every redirect goes to the user's own machine, so the name can't be trusted. */
     public static function localhostOnly(array $client): bool
     {
+        if ((array) ($client['redirect_uris'] ?? []) === []) {
+            return false;
+        }
         foreach ((array) ($client['redirect_uris'] ?? []) as $uri) {
             if (!self::isLoopback((string) parse_url((string) $uri, PHP_URL_HOST))) {
                 return false;
