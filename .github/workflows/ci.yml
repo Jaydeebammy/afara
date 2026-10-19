@@ -11,4 +11,6 @@ jobs:
         run: |
           find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
       - name: Permission gate tests
-        run: php tests/PermissionGateTest.php
+        run: |
+          php tests/PermissionGateTest.php
+          php tests/PathGuardTest.php
