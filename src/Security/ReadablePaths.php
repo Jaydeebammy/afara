@@ -23,6 +23,9 @@ final class ReadablePaths
                 return null;
             }
         }
+        if (!SourcePolicy::allows($path, $directory)) {
+            return null;
+        }
         $resolved = $this->guard->resolveForRead($path);
         if ($resolved === null || !is_readable($resolved)) {
             return null;
