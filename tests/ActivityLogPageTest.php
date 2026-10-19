@@ -34,7 +34,7 @@ check(str_contains($html, 'Nothing recorded yet.'), 'empty state');
 $userId = 0;
 for ($i = 0; $i < 3; $i++) { ActivityLog::refused('incorrect_password'); }
 $userId = 1;
-ActivityLog::useConnection('<script>alert(1)</script>', 'u');
+ActivityLog::useConnection('<script>alert(1)</script>', 'not-a-uuid');
 ActivityLog::record('afara/read-file', false, 'afara_path_denied');
 ActivityLog::record('afara/site-context', true);
 $html = $render();

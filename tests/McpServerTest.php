@@ -35,7 +35,12 @@ namespace {
     function get_userdata($id) { return $id === 1 ? (object) ['user_login' => 'admin'] : false; }
     function home_url(): string { return 'https://staging.example.test'; }
     function wp_parse_url($url, $component) { return parse_url($url, $component); }
-    function current_user_can($capability): bool { global $admin; return $capability === 'manage_options' && $admin; }
+    $editable = [];
+    function current_user_can($capability, ...$args): bool {
+        global $admin, $editable;
+        if ($capability === 'edit_user') { return $admin && in_array((int) ($args[0] ?? 0), $editable, true); }
+        return $capability === 'manage_options' && $admin;
+    }
     function is_user_logged_in(): bool { global $loggedIn; return $loggedIn; }
     function is_ssl(): bool { global $ssl; return $ssl; }
     function wp_get_ability($name) { global $abilities; return $abilities[$name] ?? null; }
@@ -155,7 +160,7 @@ namespace {
     check(!\Afara\Mcp\Server::isAfaraRequest(), 'look-alike route ignored');
     $_GET = ['rest_route' => '/afara/v1/mcp'];
     \Afara\Mcp\Server::resetRequestState();
-    $server->connectionAuthenticated((object) [], ['name' => 'Antigravity', 'uuid' => 'abc', 'password' => 'hash-must-not-leak']);
+    $server->connectionAuthenticated((object) [], ['name' => 'Antigravity', 'uuid' => 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'password' => 'hash-must-not-leak']);
     \Afara\Audit\ActivityLog::record('afara/site-context', true);
     check($log()[0]['connection'] === 'Antigravity', 'connection label recorded');
     check(!str_contains(json_encode($options['afara_activity_log']), 'hash-must-not-leak'), 'password hash never stored');

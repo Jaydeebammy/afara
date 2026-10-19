@@ -27,3 +27,9 @@
 .afara-admin .afara-log__row--refused td:first-child{box-shadow:inset 3px 0 0 #d63638}
 .afara-admin .afara-log__repeat{color:#50575e;font-size:12px}
 .afara-admin .subsubsub{float:none;margin:0 0 8px}
+.afara-admin .afara-connections th[scope=row]{font-weight:600}
+.afara-admin .afara-connections__row--confirming th,.afara-admin .afara-connections__row--confirming td{background:#fcf0f1}
+.afara-admin .afara-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:2px;background:#f0f0f1;color:#1d2327;font-size:11px;line-height:18px}
+.afara-admin .afara-button-danger,.afara-admin .afara-button-danger:hover,.afara-admin .afara-button-danger:focus{background:#d63638;border-color:#d63638;color:#fff}
+.afara-admin .afara-button-danger:hover{background:#b32d2e;border-color:#b32d2e}
+.afara-admin #afara-revoke-confirm:focus{outline:2px solid #2271b1;outline-offset:2px}

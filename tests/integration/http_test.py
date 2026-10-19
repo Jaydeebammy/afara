@@ -90,6 +90,7 @@ try:
     credentials = 'admin:' + password
     passwords = json.loads(wp('user', 'application-password', 'list', 'admin', '--format=json'))
     admin_password_id = next(p['uuid'] for p in passwords if p['name'] == 'afara-http-test')
+    admin_uuid = admin_password_id
     editor_id = wp('user', 'create', 'afara-http-editor', 'afara-editor@example.test', '--role=editor', '--porcelain')
     editor_password = wp('user', 'application-password', 'create', editor_id, 'afara-http-test', '--porcelain')
     check(request(rpc('tools/list'), credentials)[0] == 403, 'off by default with valid administrator credentials')
@@ -146,6 +147,14 @@ try:
     wp('option', 'update', 'afara_domain_lock', 'moved.example.test')
     check(tool(credentials, session, 'afara-site-context', {})[0] == 403, 'domain change denies existing session execution')
     wp('option', 'update', 'afara_domain_lock', 'localhost')
+    listing = json.loads(subprocess.check_output(['wp', f'--path={ROOT}', '--user=admin', 'eval',
+                                                  'echo wp_json_encode(\\Afara\\Admin\\Connections::all());'], text=True))
+    mine = next((c for c in listing if c['uuid'] == admin_password_id), None)
+    check(mine is not None and mine['name'] == 'afara-http-test' and mine['can_revoke'], 'Connections lists the admin Application Password')
+    check(mine['afara'] is not None and mine['afara']['connection_id'] == admin_password_id, 'Connections links Afara activity by ID')
+    check(all(c['user_login'] != 'afara-http-editor' for c in listing), 'Connections excludes non-administrators')
+    check(all('password' not in c for c in listing) and '$wp$' not in json.dumps(listing) and '$P$' not in json.dumps(listing),
+          'Connections exposes no password hashes')
     wp('user', 'application-password', 'delete', 'admin', admin_password_id)
     admin_password_id = None
     check(request(rpc('tools/list'), credentials, session)[0] == 401, 'revoked Application Password denied on existing session')
@@ -161,12 +170,12 @@ try:
     check(editor['user_login'] == 'afara-http-editor' and editor['connection'] == 'afara-http-test', 'refusal names the account and connection')
     ran = [e for e in log if e['result'] in ('success', 'error')]
     check(any(e['ability'] == 'afara/site-context' and e['result'] == 'success' and e['user_login'] == 'admin'
-              and e['connection'] == 'afara-http-test' for e in ran), 'success names the account and connection')
+              and e['connection'] == 'afara-http-test' and e['connection_id'] == admin_uuid for e in ran), 'success names the account and connection')
     check(any(e['reason'] == 'afara_path_denied' for e in ran), 'denied path logged with reason')
     serialized_log = json.dumps(log)
     for secret in [password, editor_password, 'sensitive-config-fixture', 'hidden-fixture', 'wp-config', '127.0.0.1']:
         check(secret not in serialized_log, 'activity log stores no secrets, paths or IPs')
-    check(all(sorted(e) == sorted(['time', 'user_id', 'user_login', 'connection', 'ability', 'result', 'reason', 'count']) for e in log),
+    check(all(sorted(e) == sorted(['time', 'user_id', 'user_login', 'connection', 'connection_id', 'ability', 'result', 'reason', 'count']) for e in log),
           'activity log fields are exactly the documented set')
     print(f'::notice::{checks} WordPress HTTP integration checks passed')
 finally:
