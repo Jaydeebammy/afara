@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Afara\Abilities;
 
 use Afara\Security\PermissionGate;
+use Afara\Audit\AuditCallback;
 use Afara\Security\PathGuard;
 use Afara\Security\ReadablePaths;
 
@@ -40,7 +41,7 @@ final class ListDirectory
                 ],
             ],
             'permission_callback' => fn (): bool => $this->gate->canRead(),
-            'execute_callback' => static function (array $input) {
+            'execute_callback' => AuditCallback::wrap(static function (array $input) {
                 $path = (string) ($input['path'] ?? '');
                 $scope = new ReadablePaths(new PathGuard(ABSPATH));
                 $directory = $scope->resolve($path, true);
@@ -65,7 +66,7 @@ final class ListDirectory
                     $entries[] = ['name' => $entry->getFilename(), 'type' => $asDirectory !== null ? 'directory' : 'file'];
                 }
                 return ['path' => $path, 'entries' => $entries, 'truncated' => $truncated];
-            },
+            }, 'afara/list-directory'),
             'meta' => ['show_in_rest' => false, 'mcp' => ['public' => false], 'annotations' => ['readonly' => true, 'destructive' => false]],
         ]);
     }
