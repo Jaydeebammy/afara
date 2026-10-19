@@ -192,6 +192,7 @@ final class ConnectPage
               <p><?php esc_html_e('For apps that sign in with OAuth (for example, a custom connector in Claude). Paste this server URL into the app. It will open an approval page here; nothing is shared until you click Allow.', 'afara'); ?></p>
               <p><code><?php echo esc_html($endpoint); ?></code></p>
               <p class="description"><?php esc_html_e('Read-only access. Tokens last an hour and renew automatically; revoke the app below to sign it out.', 'afara'); ?></p>
+              <p><?php esc_html_e('Agents without a browser (terminal tools, chat bots) can use device sign-in: they show a short code, and you enter it here:', 'afara'); ?> <a href="<?php echo esc_url(\Afara\OAuth\DeviceFlow::verificationUri()); ?>"><?php esc_html_e('Device sign-in', 'afara'); ?></a></p>
             <?php else : ?>
               <p><?php echo esc_html(sprintf(__('Not available: %s.', 'afara'), \Afara\Admin\ActivityLogPage::reason($reason))); ?></p>
               <?php if (in_array($reason, ['oauth_disabled', 'afara_disabled', 'afara_domain_mismatch'], true)) : ?>

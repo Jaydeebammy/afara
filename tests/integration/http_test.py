@@ -351,6 +351,31 @@ try:
     status, _, _ = mcp_bearer(rpc('tools/list'), tokens['access_token'], oauth_session)
     check(status == 401, 'oauth: revoking the app in Connect signs it out')
 
+    # Device flow (RFC 8628): register without a redirect, get a code, approve, poll.
+    device_grant = 'urn:ietf:params:oauth:grant-type:device_code'
+    check(device_grant in asm['grant_types_supported'] and asm.get('device_authorization_endpoint'), 'device: advertised in metadata')
+    status, _, body = raw(local(asm['registration_endpoint']), json.dumps({'client_name': 'Afara CLI', 'grant_types': [device_grant, 'refresh_token']}).encode(),
+                          {'Content-Type': 'application/json'})
+    cli = json.loads(body)
+    check(status == 201 and cli['redirect_uris'] == [], 'device: client registers with no redirect URI')
+    status, _, started = form(local(asm['device_authorization_endpoint']), {'client_id': cli['client_id'], 'scope': 'afara:read', 'resource': prm['resource']})
+    check(status == 200 and len(started['user_code']) == 9 and 'page=afara-device' in started['verification_uri'], 'device: code issued with a verification page')
+    poll_fields = {'grant_type': device_grant, 'client_id': cli['client_id'], 'device_code': started['device_code']}
+    status, _, body = form(local(asm['token_endpoint']), poll_fields)
+    check(status == 400 and body['error'] == 'authorization_pending', 'device: polling waits for approval')
+    approved = subprocess.check_output(['wp', f'--path={ROOT}', '--user=admin', 'eval',
+                                        f"echo \\Afara\\OAuth\\DeviceFlow::decide('{started['user_code']}', true, get_current_user_id()) ? 'yes' : 'no';"], text=True).strip()
+    check(approved == 'yes', 'device: administrator approves the typed code')
+    time.sleep(started['interval'] + 1)
+    status, _, device_tokens = form(local(asm['token_endpoint']), poll_fields)
+    check(status == 200 and device_tokens['token_type'] == 'Bearer', 'device: approved device receives tokens')
+    status, _, body = mcp_bearer(rpc('tools/list'), device_tokens['access_token'], oauth_session)
+    check(status == 200 and {t['name'] for t in body['result']['tools']} == expected, 'device: token lists the three read-only tools')
+    status, _, body = form(local(asm['token_endpoint']), poll_fields)
+    check(status == 400 and body['error'] == 'expired_token', 'device: code is single-use')
+    stored = wp('db', 'query', "SELECT option_value FROM wp_options WHERE option_name LIKE 'afara_oauth%'", '--skip-column-names')
+    check(started['device_code'] not in stored and device_tokens['access_token'] not in stored, 'device: device code and tokens stored only as hashes')
+
     wp('option', 'update', 'afara_oauth_enabled', '0')
     off_status, _, off_body = raw(local(prm_url))
     check(off_status != 200 and b'authorization_servers' not in off_body, 'oauth: switched off means no well-known document')

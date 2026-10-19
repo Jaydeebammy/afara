@@ -37,7 +37,7 @@ foreach ([['afara_oauth_enabled', '0', 'oauth_disabled'], ['permalink_structure'
 $ssl = false; check(Config::unavailableReason() === 'afara_https_required', 'unavailable over HTTP'); $ssl = true;
 $as = Config::authorizationServerMetadata();
 check($as['code_challenge_methods_supported'] === ['S256'], 'advertises S256 only (clients refuse without it)');
-check($as['token_endpoint_auth_methods_supported'] === ['none'] && $as['grant_types_supported'] === ['authorization_code', 'refresh_token'], 'public clients, code + refresh');
+check($as['token_endpoint_auth_methods_supported'] === ['none'] && $as['grant_types_supported'] === ['authorization_code', 'refresh_token', 'urn:ietf:params:oauth:grant-type:device_code'] && str_ends_with($as['device_authorization_endpoint'], 'oauth/device'), 'public clients; code, refresh and device grants');
 check(!str_contains($as['issuer'], '#'), 'issuer has no fragment');
 $prm = Config::protectedResourceMetadata();
 check($prm['resource'] === $resource && $prm['authorization_servers'] === [$as['issuer']], 'protected resource metadata points at Afara’s issuer');

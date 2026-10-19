@@ -104,8 +104,18 @@ final class AuthorizationServer
     {
         $str = static fn (string $k): string => isset($body[$k]) && is_string($body[$k]) ? $body[$k] : '';
         $client = Clients::find($str('client_id'));
-        if ($client === null || empty($client['approved'])) {
-            return self::error('invalid_client', 'Unknown or unapproved client_id.');
+        if ($client === null) {
+            return self::error('invalid_client', 'Unknown client_id.');
+        }
+        if ($str('grant_type') === DeviceFlow::GRANT) {
+            // Device clients poll before anyone has approved them; the device state decides.
+            if (!Clients::allowsGrant($client, DeviceFlow::GRANT)) {
+                return self::error('unauthorized_client', 'This client did not register for the device_code grant.');
+            }
+            return DeviceFlow::poll($str('client_id'), $str('device_code'));
+        }
+        if (empty($client['approved'])) {
+            return self::error('invalid_client', 'This client hasn’t been approved by an administrator.');
         }
         $resource = $str('resource');
         if ($resource !== '' && !Config::sameResource($resource, Config::resource())) {
@@ -114,7 +124,7 @@ final class AuthorizationServer
         return match ($str('grant_type')) {
             'authorization_code' => self::exchangeCode($str('client_id'), $client, $str('code'), $str('redirect_uri'), $str('code_verifier')),
             'refresh_token' => self::refresh($str('client_id'), $client, $str('refresh_token'), $str('scope')),
-            default => self::error('unsupported_grant_type', 'Supported: authorization_code, refresh_token.'),
+            default => self::error('unsupported_grant_type', 'Supported: authorization_code, refresh_token, ' . DeviceFlow::GRANT . '.'),
         };
     }
 
@@ -230,6 +240,13 @@ final class AuthorizationServer
         }
         Store::put(Store::KIND_USED_REFRESH, $token, ['grant_id' => $grantId], Config::REFRESH_TTL);
         return self::issue($grantId, $grant);
+    }
+
+    /** Issue tokens for a grant that was just created (device flow). */
+    public static function issueFor(string $grantId): array
+    {
+        $grant = Grants::find($grantId);
+        return $grant === null ? self::error('invalid_grant', 'This connection was revoked.') : self::issue($grantId, $grant);
     }
 
     /** @param array<string, mixed> $grant */

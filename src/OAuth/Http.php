@@ -45,6 +45,7 @@ final class Http
         register_rest_route($ns, "/$base/protected-resource", $open + ['methods' => 'GET', 'callback' => fn () => $this->json(static fn () => Config::protectedResourceMetadata())]);
         register_rest_route($ns, "/$base/register", $open + ['methods' => 'POST', 'callback' => fn (\WP_REST_Request $r) => $this->result(fn () => Clients::register($this->params($r, true)))]);
         register_rest_route($ns, "/$base/token", $open + ['methods' => 'POST', 'callback' => fn (\WP_REST_Request $r) => $this->result(fn () => AuthorizationServer::token($this->params($r)))]);
+        register_rest_route($ns, "/$base/device", $open + ['methods' => 'POST', 'callback' => fn (\WP_REST_Request $r) => $this->result(fn () => DeviceFlow::start($this->params($r)))]);
         register_rest_route($ns, "/$base/revoke", $open + ['methods' => 'POST', 'callback' => fn (\WP_REST_Request $r) => $this->result(fn () => AuthorizationServer::revoke($this->params($r)))]);
     }
 
