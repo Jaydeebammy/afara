@@ -8,6 +8,8 @@ use Afara\Admin\ConnectPage;
 use Afara\Admin\AbilitiesPage;
 use Afara\Security\PermissionGate;
 use Afara\Abilities\SiteContext;
+use Afara\Abilities\ReadFile;
+use Afara\Abilities\ListDirectory;
 
 final class Plugin
 {
@@ -35,7 +37,10 @@ final class Plugin
             if (!function_exists('wp_register_ability')) {
                 return;
             }
-            (new SiteContext(new PermissionGate()))->register();
+            $gate = new PermissionGate();
+            (new SiteContext($gate))->register();
+            (new ReadFile($gate))->register();
+            (new ListDirectory($gate))->register();
         });
     }
 }
