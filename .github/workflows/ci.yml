@@ -6,6 +6,18 @@ on:
 permissions:
   contents: read
 jobs:
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build and validate installable staging ZIP
+        run: bash scripts/package-staging.sh "$RUNNER_TEMP/afara-staging.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: afara-staging-plugin
+          path: ${{ runner.temp }}/afara-staging.zip
+          if-no-files-found: error
+          retention-days: 7
   unit:
     runs-on: ubuntu-24.04
     strategy:
