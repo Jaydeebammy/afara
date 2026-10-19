@@ -14,3 +14,4 @@ jobs:
         run: |
           php tests/PermissionGateTest.php
           php tests/PathGuardTest.php
+          php tests/ReadablePathsTest.php
