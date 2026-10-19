@@ -8,12 +8,15 @@ use Afara\Editing\LocalAtomicWriter;
 
 $root = sys_get_temp_dir() . '/afara-writer-' . bin2hex(random_bytes(6));
 mkdir($root);
+$backupRoot = sys_get_temp_dir() . '/afara-backups-' . bin2hex(random_bytes(6));
+mkdir($backupRoot, 0700);
 file_put_contents($root . '/note.txt', 'old');
-$writer = new LocalAtomicWriter($root);
+$writer = new LocalAtomicWriter($root, $backupRoot);
 try {
+    if (str_starts_with($backupRoot . '/', $root . '/')) throw new RuntimeException('Backup root nested under edit root');
     $first = $writer->replace('note.txt', hash('sha256', 'old'), 'new');
     if (file_get_contents($root . '/note.txt') !== 'new'
-        || file_get_contents($first['backup']) !== 'old') {
+        || file_get_contents($first['backup']) !== 'old' || dirname($first['backup']) !== realpath($backupRoot)) {
         throw new RuntimeException('Atomic write or backup failed');
     }
     try {
@@ -49,7 +52,7 @@ try {
     unlink($lockPath);
     unlink($outside);
     try {
-        $writer->restore('note.txt', $root . '/.afara-backup-../../elsewhere', hash('sha256', 'old'));
+        $writer->restore('note.txt', $backupRoot . '/.afara-backup-../../elsewhere', hash('sha256', 'old'));
         throw new RuntimeException('Backup traversal accepted');
     } catch (InvalidArgumentException $e) {
         if ($e->getMessage() === 'Backup traversal accepted') throw $e;
@@ -59,4 +62,7 @@ try {
     foreach (glob($root . '/*') ?: [] as $f) { if (is_file($f)) unlink($f); }
     foreach (glob($root . '/.*') ?: [] as $f) { if (is_file($f)) unlink($f); }
     rmdir($root);
+    foreach (glob($backupRoot . '/*') ?: [] as $file) { if (is_file($file)) unlink($file); }
+    foreach (glob($backupRoot . '/.*') ?: [] as $file) { if (is_file($file)) unlink($file); }
+    rmdir($backupRoot);
 }
