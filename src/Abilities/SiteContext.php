@@ -36,7 +36,7 @@ final class SiteContext
                     'theme' => $theme->get('Name'),
                 ];
             },
-            'meta' => ['mcp' => ['public' => true], 'annotations' => ['readonly' => true]],
+            'meta' => ['show_in_rest' => false, 'mcp' => ['public' => true], 'annotations' => ['readonly' => true]],
         ]);
     }
 }
