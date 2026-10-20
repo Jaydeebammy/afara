@@ -262,7 +262,7 @@ try:
     client_password = wp('user', 'application-password', 'create', client_id, 'afara-quiet-test', '--porcelain')
     client_session = initialize('afara-http-client:' + client_password)
     status, _, body = request(rpc('tools/list'), 'afara-http-client:' + client_password, client_session)
-    check(status == 200 and len(body.get('result', {}).get('tools', [])) == 3, 'quiet mode hides, never blocks: hidden admin can still connect')
+    check(status == 200 and {t['name'] for t in body.get('result', {}).get('tools', [])} == expected, 'quiet mode hides, never blocks: hidden admin can still connect')
     wp('user', 'delete', client_id, '--yes')
     wp('option', 'delete', 'afara_quiet_mode')
     wp('option', 'delete', 'afara_quiet_users')

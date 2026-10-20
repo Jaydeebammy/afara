@@ -81,3 +81,6 @@
 .afara-admin :is(a,button,input,select,textarea):focus-visible{outline:2px solid var(--afara-accent);outline-offset:3px}
 @media(max-width:782px){.afara-admin{padding:8px 8px 24px 0}.afara-admin .afara-brandbar{gap:10px}.afara-admin .afara-brand{font-size:23px}.afara-admin .afara-brand small{max-width:160px;line-height:1.4}.afara-admin .afara-nav a{padding:12px}.afara-admin .afara-card{padding:18px}.afara-admin .form-table th,.afara-admin .form-table td{display:block;width:auto;padding:16px 18px}.afara-admin .form-table th{padding-bottom:2px}.afara-admin .form-table tr+tr td{border-top:0}.afara-admin .afara-connection-pill{padding:6px 8px;font-size:11px}}
 @media(prefers-reduced-motion:reduce){.afara-admin *{animation:none!important;scroll-behavior:auto!important}}
+.afara-admin *,.afara-admin *:before,.afara-admin *:after{box-sizing:border-box}
+.afara-admin .form-table{table-layout:fixed;width:100%}
+.afara-admin .regular-text{width:min(100%,340px)}

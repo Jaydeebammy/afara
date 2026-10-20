@@ -240,7 +240,7 @@ final class ConnectPage
             <p><?php esc_html_e('For clients that launch an STDIO process, use the official @automattic/mcp-wordpress-remote bridge with these environment variables on your own machine. Store the password in your client’s secure credential settings; do not paste it into Afara or logs.', 'afara'); ?></p>
             <pre><code><?php echo esc_html('WP_API_URL=' . $endpoint . "\nWP_API_USERNAME=your-wordpress-username\nWP_API_PASSWORD=<application-password>"); ?></code></pre>
             <p><code>npx -y @automattic/mcp-wordpress-remote@latest</code></p>
-            <p><?php esc_html_e('The client must initialize MCP and preserve negotiated protocol headers and any Mcp-Session-Id returned by the adapter. Discovery returns the three source-inspection tools and three Elementor tools. Elementor edits are draft-only, require staging, write mode and safe mode off; OAuth tokens remain read-only. Revoking the Application Password, disabling Afara, or changing the domain lock denies subsequent requests. Read-only mode never enables file writes or PHP execution.', 'afara'); ?></p>
+            <p><?php esc_html_e('The client must initialize MCP and preserve negotiated protocol headers and any Mcp-Session-Id returned by the adapter. Discovery returns afara-site-context, afara-read-file, afara-list-directory, afara-elementor-document, afara-elementor-update-text and afara-elementor-update-image. Elementor edits are draft-only, require staging, write mode and safe mode off; OAuth tokens remain read-only. Revoking the Application Password, disabling Afara, or changing the domain lock denies subsequent requests. Read-only mode never enables file writes or PHP execution.', 'afara'); ?></p>
           </div>
         </div>
         <?php
