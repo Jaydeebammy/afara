@@ -66,7 +66,7 @@ final class Documents
             if (!function_exists('wp_check_post_lock')) {
                 require_once ABSPATH . 'wp-admin/includes/post.php';
             }
-            if (wp_check_post_lock($id)) {
+            if ($this->editorLocked($id)) {
                 return $this->error('afara_elementor_editor_lock', 'Close the WordPress/Elementor editor before an agent edit.');
             }
             $document = $this->document($id);
@@ -117,7 +117,7 @@ final class Documents
             if (get_metadata('post', $revision, '_elementor_data', true) !== $raw) {
                 return $this->error('afara_elementor_backup', 'Unable to verify the revision backup.');
             }
-            if (!$this->allowed($id, true) || !hash_equals($expected, $this->checksum($id)) || wp_check_post_lock($id)) {
+            if (!$this->allowed($id, true) || !hash_equals($expected, $this->checksum($id)) || $this->editorLocked($id)) {
                 return $this->error('afara_elementor_stale', 'Permissions, lock or document changed before saving.');
             }
             $saving = true;
@@ -135,6 +135,16 @@ final class Documents
         } finally {
             if (get_option($lock) === $token) { delete_option($lock); }
         }
+    }
+
+    /** Respect active locks even when the browser editor belongs to this administrator. */
+    private function editorLocked(int $id): bool
+    {
+        if (wp_check_post_lock($id)) { return true; }
+        $lock = get_post_meta($id, '_edit_lock', true);
+        if (!is_string($lock) || !preg_match('/\A([0-9]+):([0-9]+)\z/D', $lock, $parts)) { return false; }
+        $window = function_exists('apply_filters') ? (int) apply_filters('wp_check_post_lock_window', 150) : 150;
+        return (int) $parts[2] > 0 && (int) $parts[1] > time() - max(1, $window);
     }
 
     private function document(int $id)

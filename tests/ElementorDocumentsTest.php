@@ -83,6 +83,9 @@ namespace {
     $options['afara_elementor_lock_7'] = 'another-writer';
     $denied($documents->update(7, 'heading1', $read['sha256'], 'text', 'After'), 'afara_elementor_busy'); unset($options['afara_elementor_lock_7']);
     $postLock = true; $denied($documents->update(7, 'heading1', $read['sha256'], 'text', 'After'), 'afara_elementor_editor_lock'); $postLock = false;
+    $meta[7]['_edit_lock'] = time() . ':1';
+    $denied($documents->update(7, 'heading1', $read['sha256'], 'text', 'After'), 'afara_elementor_editor_lock');
+    unset($meta[7]['_edit_lock']);
     $denied($documents->update(7, 'heading1', str_repeat('0', 64), 'text', 'After'), 'afara_elementor_stale');
     $denied($documents->update(7, 'missing', $read['sha256'], 'text', 'After'), 'afara_elementor_target');
     $denied($documents->update(7, 'image1', $read['sha256'], 'text', 'After'), 'afara_elementor_widget');

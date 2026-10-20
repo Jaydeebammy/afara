@@ -366,7 +366,9 @@ try:
     wp('option', 'update', 'afara_read_only', '0')
     wp('option', 'update', 'afara_sandbox_safe_mode', '0')
     fresh = wp('post', 'meta', 'get', str(eid), '_elementor_data')
-    status, _, body = mcp_bearer(rpc('tools/call', {'name': 'afara-elementor-update-text', 'arguments': {**edit_args, 'expected_sha256': read_elementor()['sha256']}}), tokens['access_token'], oauth_session)
+    status, _, oauth_doc = mcp_bearer(rpc('tools/call', {'name': 'afara-elementor-document', 'arguments': {'post_id': eid}}), tokens['access_token'], oauth_session)
+    check(status == 200 and not failed(oauth_doc), 'oauth: read scope can inspect Elementor draft')
+    status, _, body = mcp_bearer(rpc('tools/call', {'name': 'afara-elementor-update-text', 'arguments': {**edit_args, 'expected_sha256': elementor_result(oauth_doc)['sha256']}}), tokens['access_token'], oauth_session)
     check(failed(body) and wp('post', 'meta', 'get', str(eid), '_elementor_data') == fresh, 'oauth: read scope cannot write even with all admin write switches enabled')
     wp('option', 'update', 'afara_read_only', '1')
     wp('option', 'update', 'afara_sandbox_safe_mode', '1')
@@ -443,9 +445,6 @@ try:
     print(f'::notice::{checks} WordPress HTTP integration checks passed')
 except Exception as error:
     annotate(error)
-    raise
-except Exception as error:
-    print('::error title=WordPress integration::' + str(error).replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D'))
     raise
 finally:
     if ep:
