@@ -96,6 +96,10 @@ final class Documents
             if ($failure) { return $failure; }
             if ($matches !== 1) { return $this->error('afara_elementor_target', 'Exactly one existing widget must match the element ID.'); }
             if ($next === $before) { return $this->error('afara_elementor_no_change', 'The proposed edit does not change this widget.'); }
+            $encoded = wp_json_encode($next);
+            if (!is_string($encoded) || strlen($encoded) > self::MAX_BYTES) {
+                return $this->error('afara_elementor_size', 'The updated document exceeds the supported size.');
+            }
             if (!wp_revisions_enabled(get_post($id))) {
                 return $this->error('afara_elementor_backup', 'Enable WordPress revisions for this post type before editing.');
             }

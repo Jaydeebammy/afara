@@ -23,6 +23,9 @@ final class AbilitiesPage
             wp_die(esc_html__('Not permitted.', 'afara'));
         }
         $gate = new PermissionGate();
+        $elementorReady = defined('ELEMENTOR_VERSION') && class_exists('Elementor\\Plugin');
+        $writeReady = $gate->canWrite() && !\Afara\Sandbox\SandboxState::isSafeMode()
+            && in_array(wp_get_environment_type(), ['local', 'development', 'staging'], true);
         $abilities = [
             ['afara/site-context', 'Read WordPress and PHP environment', 'Read', 'Administrator + domain lock', true],
             ['afara/execute-php', 'Run arbitrary PHP', 'Write', 'Not implemented', false],
@@ -46,9 +49,13 @@ final class AbilitiesPage
             <table class="widefat striped">
                 <thead><tr><th scope="col"><?php esc_html_e('Status', 'afara'); ?></th><th scope="col"><?php esc_html_e('Ability', 'afara'); ?></th><th scope="col"><?php esc_html_e('Access', 'afara'); ?></th><th scope="col"><?php esc_html_e('Guard', 'afara'); ?></th></tr></thead>
                 <tbody>
-                <?php foreach ($abilities as [$name, $description, $access, $guard, $implemented]) : ?>
+                <?php foreach ($abilities as [$name, $description, $access, $guard, $implemented]) :
+                    $missingElementor = str_starts_with($name, 'afara/elementor-') && !$elementorReady;
+                    $available = $implemented && $gate->canRead() && !$missingElementor && ($access !== 'Write' || $writeReady);
+                    $state = !$implemented ? 'Planned' : ($missingElementor ? 'Elementor inactive' : ($available ? 'Available locally' : 'Disabled'));
+                    ?>
                     <tr>
-                        <td><?php echo esc_html($implemented && ($access === 'Write' ? ($gate->canWrite() && !\Afara\Sandbox\SandboxState::isSafeMode() && in_array(wp_get_environment_type(), ['local', 'development', 'staging'], true)) : $gate->canRead()) ? 'Available locally' : ($implemented ? 'Disabled' : 'Planned')); ?></td>
+                        <td><?php echo esc_html($state); ?></td>
                         <td><strong><code><?php echo esc_html($name); ?></code></strong><br><span class="description"><?php echo esc_html($description); ?></span></td>
                         <td><?php echo esc_html($access); ?></td>
                         <td><?php echo esc_html($guard); ?></td>
