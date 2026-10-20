@@ -27,7 +27,8 @@ final class ActivityLog
     public const RESULT_REFUSED = 'refused';
 
     /** Abilities that may appear in the log. A transport refusal has ability ''. */
-    private const ABILITIES = ['afara/site-context', 'afara/read-file', 'afara/list-directory'];
+    private const ABILITIES = ['afara/site-context', 'afara/read-file', 'afara/list-directory',
+        'afara/elementor-document', 'afara/elementor-update-text', 'afara/elementor-update-image'];
 
     /** Fields every entry has, in order. Nothing else is ever stored. */
     public const FIELDS = ['time', 'user_id', 'user_login', 'connection', 'connection_id', 'ability', 'result', 'reason', 'count'];

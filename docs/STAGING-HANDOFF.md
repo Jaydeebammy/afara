@@ -30,7 +30,7 @@ If testing remote MCP from Codex, make the staging site reachable over valid HTT
 2. Without MCP Adapter, Connect clearly reports the dependency, and abilities remain unavailable remotely.
 3. Enabled + exact hostname lock + read-only mode: only authenticated administrators can call the MCP server.
 4. Invalid password, non-administrator, disabled switch, changed hostname, insecure HTTP and revoked password are denied.
-5. Exactly three read-only tools appear to the MCP client; unknown and destructive abilities cannot be invoked.
+5. The six documented tools appear, with writes blocked by default; unknown and unimplemented file/PHP abilities cannot be invoked.
 6. Site-context, list-directory and read-file work for permitted fixtures and reject traversal, hidden files, secrets and symlinks.
 7. Activity Log records ability executions and every refused MCP request (Afara off, domain mismatch, plain HTTP, not signed in, not an administrator, wrong or revoked Application Password), with the account, the Application Password label and a reason code. It never stores credentials, request content, file contents, paths or IP addresses. Repeated identical refusals within 10 minutes are counted on one row.
 8. Connect → Connections lists every administrator's Application Password with created, last-used and last-Afara-activity times. Revoke asks for confirmation, then deletes that Application Password through WordPress core (POST, nonce-checked, only for accounts you can edit); the agent using it is refused from its next request.
@@ -45,3 +45,5 @@ If testing remote MCP from Codex, make the staging site reachable over valid HTT
 ## Post-staging milestones
 
 After the staging read-only gate passes, design a constrained staging-only edit workflow with explicit approval, a private backup root outside the document root, durable journals, robust filesystem isolation, rollback tests and separate security review. Do not enable remote mutations merely because the local writer tests pass.
+
+For the new controlled Elementor draft-edit workflow and its additional staging tests, see [ELEMENTOR.md](ELEMENTOR.md).

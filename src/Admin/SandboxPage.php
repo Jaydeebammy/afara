@@ -46,12 +46,13 @@ final class SandboxPage
         $exists = is_dir(SandboxState::path()) && !is_link(SandboxState::path());
         ?>
         <div class="wrap afara-admin">
+          <?php Layout::navigation('afara-sandbox'); ?>
           <h1><?php esc_html_e('Sandbox', 'afara'); ?></h1>
           <p><?php esc_html_e('Inspect the current sandbox state. Agent-written PHP loading is not implemented or enabled.', 'afara'); ?></p>
           <div class="afara-card">
             <h2><?php esc_html_e('Safe mode', 'afara'); ?></h2>
             <p><strong><?php echo esc_html($safe ? __('On', 'afara') : __('Off (executor remains disabled)', 'afara')); ?></strong></p>
-            <p><?php esc_html_e('Safe mode is on by default. Changing this switch does not permit PHP execution or file writes. Future releases will require a separate reviewed execution gate.', 'afara'); ?></p>
+            <p><?php esc_html_e('Safe mode is on by default and blocks Elementor edits. Leaving it allows draft edits only when Afara write mode and staging/development requirements also pass. This switch does not permit PHP execution or file writes. Future releases will require a separate reviewed execution gate.', 'afara'); ?></p>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
               <input type="hidden" name="action" value="afara_sandbox_mode">
               <input type="hidden" name="afara_mode" value="<?php echo esc_attr($safe ? 'leave' : 'enter'); ?>">

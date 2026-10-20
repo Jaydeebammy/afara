@@ -16,6 +16,7 @@ use Afara\Admin\SandboxPage;
 use Afara\Sandbox\SandboxState;
 use Afara\Security\PermissionGate;
 use Afara\Abilities\SiteContext;
+use Afara\Abilities\Elementor;
 use Afara\Abilities\ReadFile;
 use Afara\Abilities\ListDirectory;
 use Afara\Mcp\Server;
@@ -65,6 +66,7 @@ final class Plugin
             (new SiteContext($gate))->register();
             (new ReadFile($gate))->register();
             (new ListDirectory($gate))->register();
+            (new Elementor($gate))->register();
         });
     }
 }

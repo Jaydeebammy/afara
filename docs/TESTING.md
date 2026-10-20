@@ -66,3 +66,16 @@ On a disposable HTTPS staging installation with the actual web server and client
 
 These deployment checks require a real installation and are not implied by the
 loopback suite or isolated tests passing.
+
+
+## Elementor and workspace UI
+
+CI additionally installs and checksum-verifies Elementor 3.35.0, creates a draft
+with real heading/button/image widgets, and tests the document read tool, guarded
+text/image saves, exact revision backup, unchanged sibling/control data, stale
+hashes, published-page denial and read-only OAuth denial. The isolated suite also
+exercises backup/save failures, safe-mode entry, lock cleanup and input policies.
+
+The shared admin navigation and CSS use WordPress forms and no external assets.
+Test each page, save flow, keyboard focus and mobile viewport on your HTTPS staging
+site. Exact Figma comparison remains pending an accessible export or screenshots.

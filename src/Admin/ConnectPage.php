@@ -39,7 +39,7 @@ final class ConnectPage
         if (!Server::abilitiesAvailable()) {
             return $blocked(
                 __('Required WordPress abilities unavailable', 'afara'),
-                __('Afara’s read-only abilities didn’t register. Check that WordPress is 6.9 or newer.', 'afara'),
+                __('Afara’s abilities didn’t register. Check that WordPress is 6.9 or newer.', 'afara'),
                 null
             );
         }
@@ -215,6 +215,7 @@ final class ConnectPage
         $status = $this->status($gate, $endpoint);
         ?>
         <div class="wrap afara-admin">
+          <?php Layout::navigation('afara-connect'); ?>
           <h1><?php esc_html_e('Connect an AI agent', 'afara'); ?></h1>
           <h2><?php esc_html_e('Connection status', 'afara'); ?></h2>
           <div id="afara-status" class="afara-status afara-status--<?php echo esc_attr($status['state']); ?>" aria-labelledby="afara-status-title" aria-describedby="afara-status-detail">
@@ -239,7 +240,7 @@ final class ConnectPage
             <p><?php esc_html_e('For clients that launch an STDIO process, use the official @automattic/mcp-wordpress-remote bridge with these environment variables on your own machine. Store the password in your client’s secure credential settings; do not paste it into Afara or logs.', 'afara'); ?></p>
             <pre><code><?php echo esc_html('WP_API_URL=' . $endpoint . "\nWP_API_USERNAME=your-wordpress-username\nWP_API_PASSWORD=<application-password>"); ?></code></pre>
             <p><code>npx -y @automattic/mcp-wordpress-remote@latest</code></p>
-            <p><?php esc_html_e('The client must initialize MCP and preserve negotiated protocol headers and any Mcp-Session-Id returned by the adapter. Discovery should return only afara-site-context, afara-read-file and afara-list-directory. Revoking the Application Password, disabling Afara, or changing the domain lock denies subsequent requests. Read-only mode never enables file writes or PHP execution.', 'afara'); ?></p>
+            <p><?php esc_html_e('The client must initialize MCP and preserve negotiated protocol headers and any Mcp-Session-Id returned by the adapter. Discovery returns afara-site-context, afara-read-file, afara-list-directory, afara-elementor-document, afara-elementor-update-text and afara-elementor-update-image. Elementor edits are draft-only, require staging, write mode and safe mode off; OAuth tokens remain read-only. Revoking the Application Password, disabling Afara, or changing the domain lock denies subsequent requests. Read-only mode never enables file writes or PHP execution.', 'afara'); ?></p>
           </div>
         </div>
         <?php

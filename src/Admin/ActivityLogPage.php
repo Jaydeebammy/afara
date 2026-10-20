@@ -87,6 +87,7 @@ final class ActivityLogPage
         $base = admin_url('admin.php?page=afara-activity');
         ?>
         <div class="wrap afara-admin">
+          <?php Layout::navigation('afara-activity'); ?>
             <h1><?php esc_html_e('Activity log', 'afara'); ?></h1>
             <p><?php esc_html_e('What agents did through Afara, and every request Afara refused. Inputs, file contents, passwords and IP addresses are never stored.', 'afara'); ?></p>
 

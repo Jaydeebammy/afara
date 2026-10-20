@@ -10,7 +10,7 @@ The plugin neither bundles the adapter nor implements a parallel MCP protocol.
 HTTPS → WordPress REST authentication (Application Passwords for remote clients)
 → server permission callback → authenticated administrator (`manage_options`)
 → off-by-default switch → exact `home_url()` hostname lock → ability permission
-callback → read-only implementation and existing path/source guards.
+callback → inspection with path/source guards, or guarded Elementor draft editing.
 
 The same gate is evaluated per request and per ability execution. Registration
 must not depend on a current user at REST initialization. Disabling Afara or
@@ -23,6 +23,12 @@ public discovery/execution meta-tools. Source reads retain size/range limits,
 UTF-8 validation, theme/plugin scope, sensitive-name exclusions and symlink and
 traversal rejection. Read-only mode remains enabled by default; turning it off
 does not add write abilities. There is no arbitrary PHP execution.
+
+Elementor document/text/image abilities use the existing admin/domain gate,
+per-post edit permission, HTTPS and bounded inputs. Mutations additionally require
+a draft, a staging/development environment, write mode and safe mode off; read-only
+OAuth tokens are rejected. A revision snapshot, stale checksum check and per-Afara
+document lock precede Elementor Document::save(). See ELEMENTOR.md.
 
 An absent or unsupported adapter leaves local registration and admin pages usable
 without creating an Afara transport. Connect reports configuration prerequisites
