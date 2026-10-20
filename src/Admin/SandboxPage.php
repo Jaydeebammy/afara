@@ -46,6 +46,7 @@ final class SandboxPage
         $exists = is_dir(SandboxState::path()) && !is_link(SandboxState::path());
         ?>
         <div class="wrap afara-admin">
+          <?php Layout::navigation('afara-sandbox'); ?>
           <h1><?php esc_html_e('Sandbox', 'afara'); ?></h1>
           <p><?php esc_html_e('Inspect the current sandbox state. Agent-written PHP loading is not implemented or enabled.', 'afara'); ?></p>
           <div class="afara-card">

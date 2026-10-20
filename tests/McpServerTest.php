@@ -80,6 +80,8 @@ namespace {
         check($definition['meta']['annotations']['readonly'] === true, "$name read-only annotation");
         check(!$definition['permission_callback'](), "$name disabled by default");
     }
+    // The optional Elementor integration is registered even when Elementor is absent.
+    foreach (\Afara\Abilities\Elementor::ABILITIES as $name) { $abilities[$name] = $abilities['afara/site-context']; }
     $hooks['mcp_adapter_init'][0]($adapter);
     if ($mode !== 'supported') {
         check($adapter->calls === [], 'missing/old adapter must not register');
@@ -90,7 +92,7 @@ namespace {
     $args = $adapter->calls[0];
     check(array_slice($args, 0, 3) === ['afara', 'afara/v1', 'mcp'], 'dedicated identity and route');
     check($args[6] === [\WP\MCP\Transport\HttpTransport::class], 'only official HTTP transport');
-    check($args[9] === array_keys($abilities), 'exact three ability allowlist');
+    check($args[9] === array_keys($abilities), 'exact Afara ability allowlist');
     check($args[10] === [] && $args[11] === [], 'no resources or prompts');
     check(str_contains($server::endpoint(), '?rest_route=/afara/v1/mcp'), 'supports non-pretty permalinks');
     $authorize = $args[12];

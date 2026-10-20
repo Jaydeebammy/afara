@@ -19,6 +19,7 @@ final class Http
 
     /** Set when a bearer token was presented on Afara's route but didn't verify. */
     private static bool $invalidToken = false;
+    private static bool $bearerAuthenticated = false;
 
     public function register(): void
     {
@@ -92,6 +93,7 @@ final class Http
             self::$invalidToken = true;
             return $userId;
         }
+        self::$bearerAuthenticated = true;
         ActivityLog::useConnection($verified['client_name'], $verified['grant_id']);
         Grants::touch($verified['grant_id']);
         return $verified['user_id'];
@@ -125,9 +127,16 @@ final class Http
         return $response;
     }
 
+    /** Existing afara:read grants never authorize Elementor mutations. */
+    public static function isBearerAuthenticated(): bool
+    {
+        return self::$bearerAuthenticated;
+    }
+
     public static function resetRequestState(): void
     {
         self::$invalidToken = false;
+        self::$bearerAuthenticated = false;
     }
 
     private static function bearer(): ?string

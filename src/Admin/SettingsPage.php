@@ -187,6 +187,7 @@ final class SettingsPage
         $locked = (string) get_option('afara_domain_lock', '');
         ?>
         <div class="wrap afara-admin">
+          <?php Layout::navigation('afara'); ?>
           <h1>Afara</h1>
           <?php if ($justSaved) : $notice = self::savedNotice($status['state']); ?>
             <div id="afara-save-notice" class="notice notice-<?php echo esc_attr($notice['type']); ?> is-dismissible afara-save-notice" role="<?php echo esc_attr($notice['role']); ?>" tabindex="-1">
@@ -194,7 +195,7 @@ final class SettingsPage
             </div>
           <?php endif; ?>
           <p>An AI agent, working inside WordPress.</p>
-          <div class="notice notice-warning inline"><p><strong>Development software:</strong> Use a disposable staging site. The official MCP Adapter provides authenticated read-only access when configured. Arbitrary PHP execution and file mutations are unavailable.</p></div>
+          <div class="notice notice-warning inline"><p><strong>Development software:</strong> Use a disposable staging site. The official MCP Adapter provides authenticated inspection and controlled Elementor draft editing when configured. Arbitrary PHP execution and file mutations are unavailable.</p></div>
           <h2>Connection settings</h2>
           <div id="afara-status" class="afara-status afara-status--<?php echo esc_attr($status['state']); ?><?php echo $justSaved ? ' afara-status--changed' : ''; ?>" aria-labelledby="afara-status-title" aria-describedby="afara-status-detail">
             <span class="dashicons dashicons-<?php echo esc_attr($status['icon']); ?>" aria-hidden="true"></span>
@@ -207,7 +208,7 @@ final class SettingsPage
             <?php settings_fields('afara_settings'); ?>
             <table class="form-table" role="presentation">
               <tr><th scope="row">AI access</th><td><label><input type="hidden" name="afara_enabled" value="0"><input type="checkbox" name="afara_enabled" value="1" aria-describedby="afara-status-title" <?php checked(get_option('afara_enabled', '0'), '1'); ?>> Enable Afara (off by default)</label></td></tr>
-              <tr><th scope="row">Read-only mode</th><td><label><input type="hidden" name="afara_read_only" value="0"><input type="checkbox" name="afara_read_only" value="1" <?php checked(get_option('afara_read_only', '1'), '1'); ?>> Restrict changes</label><p class="description">This option will govern future write abilities. Leave it enabled.</p></td></tr>
+              <tr><th scope="row">Read-only mode</th><td><label><input type="hidden" name="afara_read_only" value="0"><input type="checkbox" name="afara_read_only" value="1" <?php checked(get_option('afara_read_only', '1'), '1'); ?>> Restrict changes</label><p class="description">Leave enabled to block Elementor edits. Draft editing additionally requires a staging/development site and safe mode off. OAuth tokens remain read-only.</p></td></tr>
               <tr><th scope="row"><label for="afara_domain_lock">Domain lock</label></th><td><input id="afara_domain_lock" class="regular-text" type="text" name="afara_domain_lock" value="<?php echo esc_attr($locked !== '' ? $locked : $hostname); ?>" aria-describedby="afara-domain-lock-help"><p id="afara-domain-lock-help" class="description"><?php echo $locked === '' ? esc_html__('Pre-filled with this site’s address. Save to lock Afara to it.', 'afara') . ' ' : ''; ?>Enter the site's hostname (without https:// or path). Changing domains disables access until updated.</p></td></tr>
               <tr><th scope="row"><?php esc_html_e('OAuth sign-in', 'afara'); ?></th><td><label><input type="hidden" name="afara_oauth_enabled" value="0"><input type="checkbox" name="afara_oauth_enabled" value="1" aria-describedby="afara-oauth-help" <?php checked(get_option('afara_oauth_enabled', '0'), '1'); ?>> <?php esc_html_e('Let apps sign in with OAuth (off by default)', 'afara'); ?></label><p id="afara-oauth-help" class="description"><?php esc_html_e('For apps that can’t use an Application Password. Each app must be approved by an administrator on an approval page, and gets read-only access you can revoke in Connect.', 'afara'); ?></p></td></tr>
             </table>

@@ -12,8 +12,8 @@ Development happens on feature branches and is proposed to `main` via pull reque
 
 Requires WordPress 6.9+, PHP 8.1+, and the separately activated official WordPress
 MCP Adapter 0.7.1+. Afara remains off by default. Its dedicated authenticated HTTPS
-server exposes only `afara/site-context`, `afara/read-file` and
-`afara/list-directory`. No arbitrary PHP execution or file mutations are included.
+server exposes site/source inspection and guarded Elementor draft-editing abilities. No arbitrary PHP execution or file mutations are included.
+See [Elementor setup and restrictions](docs/ELEMENTOR.md) for text/image editing.
 
 See [connection setup and official API references](docs/MCP.md),
 [architecture](docs/ARCHITECTURE.md) and [tests/staging checklist](docs/TESTING.md).

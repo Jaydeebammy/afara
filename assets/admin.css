@@ -43,3 +43,41 @@
 .afara-admin .afara-device-code{font-family:Menlo,Consolas,monospace;font-size:20px;letter-spacing:.12em}
 .afara-admin input.afara-device-code{text-transform:uppercase;max-width:14em}
 .afara-admin #afara-device-result:focus{outline:2px solid #2271b1;outline-offset:2px}
+
+/* Shared workspace shell. All controls remain standard WordPress forms. */
+.afara-admin{--afara-ink:#192b34;--afara-muted:#586973;--afara-accent:#17685c;--afara-line:#dce4e6;max-width:1180px;padding:12px 24px 36px 4px;color:var(--afara-ink)}
+.afara-admin .afara-brandbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0 24px}
+.afara-admin .afara-brand{display:flex;align-items:center;gap:12px;font-size:25px;line-height:1.15;font-weight:650;letter-spacing:-.6px}
+.afara-admin .afara-brand small{display:block;margin-top:5px;font-size:12px;font-weight:400;letter-spacing:0;color:var(--afara-muted)}
+.afara-admin .afara-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--afara-accent);color:white;font:italic 32px Georgia,serif}
+.afara-admin .afara-connection-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--afara-line);border-radius:20px;background:white;padding:7px 12px;font-size:12px;font-weight:600;white-space:nowrap}
+.afara-admin .afara-nav{display:flex;gap:6px;overflow-x:auto;border-bottom:1px solid var(--afara-line);margin-bottom:26px}
+.afara-admin .afara-nav a{display:block;padding:13px 16px;border-bottom:3px solid transparent;text-decoration:none;color:var(--afara-muted);white-space:nowrap;font-weight:500}
+.afara-admin .afara-nav a:hover{color:var(--afara-accent);background:#e8eeec}
+.afara-admin .afara-nav a[aria-current=page]{border-bottom-color:var(--afara-accent);color:var(--afara-accent);font-weight:650}
+.afara-admin h1{font-size:26px;font-weight:600;letter-spacing:-.5px;line-height:1.25;padding:0;margin:0 0 10px}
+.afara-admin h2{font-size:17px;line-height:1.4;color:var(--afara-ink)}
+.afara-admin>p{max-width:800px;color:var(--afara-muted);font-size:14px;line-height:1.7}
+.afara-admin .afara-card,.afara-admin .afara-status{max-width:none;border-color:var(--afara-line);border-radius:10px;box-shadow:0 2px 6px rgba(24,43,52,.025);padding:22px 24px}
+.afara-admin .afara-card h2:first-child{margin-top:0}
+.afara-admin .afara-card p{line-height:1.65}
+.afara-admin .afara-status{border-left-width:4px;margin:20px 0}
+.afara-admin .afara-status__title{font-size:16px}
+.afara-admin .button-primary{background:var(--afara-accent);border-color:var(--afara-accent);border-radius:5px;padding:3px 15px;min-height:36px}
+.afara-admin .button-primary:hover,.afara-admin .button-primary:focus{background:#105347;border-color:#105347}
+.afara-admin .button-secondary,.afara-admin .button:not(.button-primary){border-radius:5px}
+.afara-admin input[type=text],.afara-admin input[type=url],.afara-admin input[type=password],.afara-admin select{min-height:36px;border-color:#9daeb5;border-radius:5px;max-width:100%}
+.afara-admin input[type=checkbox]:checked:before{filter:hue-rotate(300deg)}
+.afara-admin .form-table{border:1px solid var(--afara-line);border-radius:10px;border-spacing:0;background:#fff;overflow:hidden;margin-top:16px}
+.afara-admin .form-table th{padding:22px 24px;width:190px}
+.afara-admin .form-table td{padding:20px 24px}
+.afara-admin .form-table tr+tr th,.afara-admin .form-table tr+tr td{border-top:1px solid #edf0f1}
+.afara-admin .form-table .description{margin-top:8px;line-height:1.65;color:var(--afara-muted)}
+.afara-admin .widefat{border-color:var(--afara-line);box-shadow:none}
+.afara-admin .widefat th,.afara-admin .widefat td{padding:15px;line-height:1.6}
+.afara-admin .widefat thead th{background:#f5f8f8;font-size:12px;font-weight:600;color:var(--afara-muted)}
+.afara-admin pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f8f8;border:1px solid var(--afara-line);border-radius:7px;padding:16px;line-height:1.7}
+.afara-admin pre code{background:none;padding:0;font-size:12px}
+.afara-admin :is(a,button,input,select,textarea):focus-visible{outline:2px solid var(--afara-accent);outline-offset:3px}
+@media(max-width:782px){.afara-admin{padding:8px 8px 24px 0}.afara-admin .afara-brandbar{gap:10px}.afara-admin .afara-brand{font-size:23px}.afara-admin .afara-brand small{max-width:160px;line-height:1.4}.afara-admin .afara-nav a{padding:12px}.afara-admin .afara-card{padding:18px}.afara-admin .form-table th,.afara-admin .form-table td{display:block;width:auto;padding:16px 18px}.afara-admin .form-table th{padding-bottom:2px}.afara-admin .form-table tr+tr td{border-top:0}.afara-admin .afara-connection-pill{padding:6px 8px;font-size:11px}}
+@media(prefers-reduced-motion:reduce){.afara-admin *{animation:none!important;scroll-behavior:auto!important}}

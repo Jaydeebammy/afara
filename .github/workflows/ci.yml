@@ -79,6 +79,8 @@ jobs:
           wp plugin install https://github.com/WordPress/mcp-adapter/releases/download/v0.7.1/mcp-adapter.zip --activate --path="$AFARA_WP_PATH"
           ln -s "$GITHUB_WORKSPACE" "$AFARA_WP_PATH/wp-content/plugins/afara"
           wp plugin activate afara --path="$AFARA_WP_PATH"
+          wp plugin install elementor --version=3.35.0 --activate --path="$AFARA_WP_PATH"
+          wp plugin verify-checksums elementor --path="$AFARA_WP_PATH"
       - name: Real REST authentication and MCP functional checks
         run: |
           php -S 127.0.0.1:8080 -t "$AFARA_WP_PATH" tests/integration/router.php > /tmp/afara-http.log 2>&1 &

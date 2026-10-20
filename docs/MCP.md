@@ -34,7 +34,7 @@ The integration follows the official **v0.7.1** release APIs, reviewed on 2026-1
    activate the official adapter plugin and Afara. The adapter is optional for
    Afara's admin screens and local ability registration, but required for MCP.
 2. In Afara Settings, enter the exact `home_url()` hostname and enable AI access.
-   Keep read-only mode enabled. Unchecking read-only mode adds no write abilities.
+   Keep read-only mode enabled for inspection. See ELEMENTOR.md before enabling draft edits.
 3. On an administrator account (`manage_options`), create a dedicated Application
    Password in Users → Profile. Treat it as an administrator credential and revoke
    it when finished. Never use your regular account password.
@@ -68,9 +68,7 @@ The integration follows the official **v0.7.1** release APIs, reviewed on 2026-1
    `tools/list`. MCP tool names are `afara-site-context`, `afara-read-file` and
    `afara-list-directory`; the adapter replaces the abilities' slash with a hyphen.
 
-The server ID is `afara`, REST namespace `afara/v1`, route `mcp`. There are no
-resources, prompts, generic execute-ability meta-tools, file mutations or arbitrary
-PHP execution on this server. The Connect page reports local prerequisites,
+The server ID is `afara`, REST namespace `afara/v1`, route `mcp`. There are no resources, prompts, generic execute-ability meta-tools, file mutations or arbitrary PHP execution on this server. Three additional Elementor tools provide document inspection and guarded draft text/image edits; see [ELEMENTOR.md](ELEMENTOR.md). The Connect page reports local prerequisites,
 **not** a successful remote connection or an endpoint probe.
 
 ## Deployment checks

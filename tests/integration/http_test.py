@@ -90,6 +90,7 @@ def failed(body):
 
 fixture = None
 editor_id = None
+ep = None
 admin_password_id = None
 try:
     for attempt in range(30):
@@ -121,9 +122,9 @@ try:
     session = initialize(credentials)
     status, _, body = request(rpc('tools/list'), credentials, session)
     tools = body.get('result', {}).get('tools', [])
-    expected = {'afara-site-context', 'afara-read-file', 'afara-list-directory'}
-    check(status == 200 and {t['name'] for t in tools} == expected, 'exact three read-only tools discovered')
-    check(all(t.get('annotations', {}).get('readOnlyHint') is True for t in tools), 'read-only annotations preserved')
+    expected = {'afara-site-context', 'afara-read-file', 'afara-list-directory', 'afara-elementor-document', 'afara-elementor-update-text', 'afara-elementor-update-image'}
+    check(status == 200 and {t['name'] for t in tools} == expected, 'exact Afara tool allowlist discovered')
+    check(all(t.get('annotations', {}).get('readOnlyHint') is (t['name'] not in {'afara-elementor-update-text', 'afara-elementor-update-image'}) for t in tools), 'read-only annotations preserved')
     for method, key in [('resources/list', 'resources'), ('prompts/list', 'prompts')]:
         _, _, body = request(rpc(method), credentials, session)
         check(failed(body) or body.get('result', {}).get(key, []) == [], 'no extra ' + key)
@@ -150,6 +151,54 @@ try:
         _, _, body = tool(credentials, session, name, {})
         check(failed(body), 'unimplemented tool rejected: ' + name)
     check((fixture / 'source.txt').read_text() == 'afara-read-only-fixture\n', 'source unchanged')
+    # Elementor: real Document API, guarded writes, revision backups, stale hashes.
+    ep = json.loads(subprocess.check_output(['wp', f'--path={ROOT}', '--user=admin', 'eval-file', str(Path(__file__).with_name('elementor_fixture.php').resolve())], text=True))
+    eid = ep['post_id']
+
+    def elementor_result(body):
+        result = body.get('result', {})
+        if 'structuredContent' in result:
+            return result['structuredContent']
+        return json.loads(result['content'][0]['text'])
+
+    def read_elementor():
+        status, _, body = tool(credentials, session, 'afara-elementor-document', {'post_id': eid})
+        check(status == 200 and not failed(body), 'elementor: document read')
+        return elementor_result(body)
+
+    doc = read_elementor()
+    edit_args = {'post_id': eid, 'element_id': 'abcdef1', 'expected_sha256': doc['sha256'], 'text': 'Agent heading'}
+    _, _, body = tool(credentials, session, 'afara-elementor-update-text', edit_args)
+    check(failed(body), 'elementor: read-only default denies writes')
+    wp('option', 'update', 'afara_read_only', '0')
+    _, _, body = tool(credentials, session, 'afara-elementor-update-text', edit_args)
+    check(failed(body), 'elementor: safe mode default denies writes')
+    wp('option', 'update', 'afara_sandbox_safe_mode', '0')
+    _, _, body = tool(credentials, session, 'afara-elementor-update-text', edit_args)
+    check(not failed(body), 'elementor: allowed text edit through real adapter')
+    edit_response = elementor_result(body)
+    check(edit_response['revision_id'] > 0, 'elementor: revision backup ID returned')
+    backup = wp('post', 'meta', 'get', str(edit_response['revision_id']), '_elementor_data')
+    check('Original heading' in backup and 'Agent heading' not in backup, 'elementor: backup contains exact pre-edit content')
+    after = read_elementor()
+    children = after['elements'][0]['elements']
+    check(children[0]['settings']['title'] == 'Agent heading' and children[0]['settings']['align'] == 'center'
+          and children[2]['settings']['text'] == 'Original button', 'elementor: targeted text only, sibling/settings preserved')
+    _, _, body = tool(credentials, session, 'afara-elementor-update-text', edit_args)
+    check(failed(body), 'elementor: stale checksum refused')
+    _, _, body = tool(credentials, session, 'afara-elementor-update-text', {**edit_args, 'expected_sha256': after['sha256'], 'text': '[unsafe_shortcode]'})
+    check(failed(body), 'elementor: shortcodes refused')
+    _, _, body = tool(credentials, session, 'afara-elementor-update-image', {'post_id': eid, 'element_id': 'abcdef2', 'expected_sha256': after['sha256'], 'attachment_id': ep['attachment_id']})
+    check(not failed(body), 'elementor: existing image widget updated from media library')
+    after = read_elementor()
+    check(after['elements'][0]['elements'][1]['settings']['image']['id'] == ep['attachment_id'], 'elementor: image edit persisted')
+    wp('post', 'update', str(eid), '--post_status=publish')
+    _, _, body = tool(credentials, session, 'afara-elementor-update-text', {**edit_args, 'expected_sha256': after['sha256']})
+    check(failed(body), 'elementor: published pages cannot be changed')
+    wp('post', 'update', str(eid), '--post_status=draft')
+    wp('option', 'update', 'afara_read_only', '1')
+    wp('option', 'update', 'afara_sandbox_safe_mode', '1')
+
     default_route = '/?rest_route=/mcp/mcp-adapter-default-server'
     default_session = initialize(credentials, default_route)
     _, _, body = request(rpc('tools/call', {'name': 'mcp-adapter-discover-abilities', 'arguments': {}}), credentials, default_session, default_route)
@@ -311,9 +360,16 @@ try:
     check(status == 200 and oauth_session, 'oauth: MCP initialize with a bearer token')
     mcp_bearer({'jsonrpc': '2.0', 'method': 'notifications/initialized'}, tokens['access_token'], oauth_session)
     status, _, body = mcp_bearer(rpc('tools/list'), tokens['access_token'], oauth_session)
-    check(status == 200 and {t['name'] for t in body['result']['tools']} == expected, 'oauth: bearer token lists the same three read-only tools')
+    check(status == 200 and {t['name'] for t in body['result']['tools']} == expected, 'oauth: bearer token lists the same Afara tools')
     status, _, body = mcp_bearer(rpc('tools/call', {'name': 'afara-site-context', 'arguments': {}}), tokens['access_token'], oauth_session)
     check(status == 200 and not failed(body), 'oauth: bearer token runs site-context')
+    wp('option', 'update', 'afara_read_only', '0')
+    wp('option', 'update', 'afara_sandbox_safe_mode', '0')
+    fresh = wp('post', 'meta', 'get', str(eid), '_elementor_data')
+    status, _, body = mcp_bearer(rpc('tools/call', {'name': 'afara-elementor-update-text', 'arguments': {**edit_args, 'expected_sha256': read_elementor()['sha256']}}), tokens['access_token'], oauth_session)
+    check(failed(body) and wp('post', 'meta', 'get', str(eid), '_elementor_data') == fresh, 'oauth: read scope cannot write even with all admin write switches enabled')
+    wp('option', 'update', 'afara_read_only', '1')
+    wp('option', 'update', 'afara_sandbox_safe_mode', '1')
     status, _, _ = raw('/wp-json/wp/v2/users/me', headers={'Authorization': 'Bearer ' + tokens['access_token']})
     check(status == 401, 'oauth: Afara tokens sign nobody in on other WordPress routes')
     status, h, _ = mcp_bearer(rpc('tools/list'), 'forged-token', oauth_session)
@@ -370,7 +426,7 @@ try:
     status, _, device_tokens = form(local(asm['token_endpoint']), poll_fields)
     check(status == 200 and device_tokens['token_type'] == 'Bearer', 'device: approved device receives tokens')
     status, _, body = mcp_bearer(rpc('tools/list'), device_tokens['access_token'], oauth_session)
-    check(status == 200 and {t['name'] for t in body['result']['tools']} == expected, 'device: token lists the three read-only tools')
+    check(status == 200 and {t['name'] for t in body['result']['tools']} == expected, 'device: token lists the Afara tools')
     status, _, body = form(local(asm['token_endpoint']), poll_fields)
     check(status == 400 and body['error'] == 'expired_token', 'device: code is single-use')
     stored = wp('db', 'query', "SELECT option_value FROM wp_options WHERE option_name LIKE 'afara_oauth%'", '--skip-column-names')
@@ -388,7 +444,15 @@ try:
 except Exception as error:
     annotate(error)
     raise
+except Exception as error:
+    print('::error title=WordPress integration::' + str(error).replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D'))
+    raise
 finally:
+    if ep:
+        wp('post', 'delete', str(ep['post_id']), '--force')
+        wp('post', 'delete', str(ep['attachment_id']), '--force')
+    wp('option', 'update', 'afara_read_only', '1')
+    wp('option', 'update', 'afara_sandbox_safe_mode', '1')
     if fixture:
         shutil.rmtree(fixture)
     if admin_password_id:

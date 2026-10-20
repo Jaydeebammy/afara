@@ -15,7 +15,8 @@ final class Server
     public const ID = 'afara';
     public const REST_NAMESPACE = 'afara/v1';
     public const REST_ROUTE = 'mcp';
-    public const ABILITIES = ['afara/site-context', 'afara/read-file', 'afara/list-directory'];
+    public const ABILITIES = ['afara/site-context', 'afara/read-file', 'afara/list-directory',
+        'afara/elementor-document', 'afara/elementor-update-text', 'afara/elementor-update-image'];
 
     /** One refusal entry per HTTP request, however many times the adapter re-checks. */
     private static bool $refusalRecorded = false;
@@ -120,7 +121,7 @@ final class Server
             self::REST_NAMESPACE,
             self::REST_ROUTE,
             'Afara',
-            'Administrator-only, read-only WordPress source inspection.',
+            'Administrator-only WordPress inspection and controlled Elementor draft editing.',
             AFARA_VERSION,
             [HttpTransport::class],
             null, // Official null handlers avoid logging source or credentials.

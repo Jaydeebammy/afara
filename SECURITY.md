@@ -11,7 +11,10 @@ credential, keep it in the client's secure settings and never put it in URLs,
 source control or logs. Afara does not store connection credentials.
 
 The official WordPress MCP Adapter provides the HTTP transport. Afara's dedicated
-server exposes only three read-only abilities. They opt out of default-server
+server exposes source inspection and guarded Elementor draft-editing abilities.
+Elementor writes additionally require safe mode off, write mode, staging/development,
+per-post edit permission and a current checksum; OAuth grants remain read-only.
+Writes create a WordPress revision backup before using the Elementor document API. They opt out of default-server
 public meta-tools and generic REST ability exposure. File reads/listings retain
 narrow source scope, size/range limits and traversal/symlink/sensitive-name guards.
 Source-name filtering is defense in depth, not a secret scanner: administrators

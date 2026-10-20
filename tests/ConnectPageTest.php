@@ -29,6 +29,7 @@ $render = static function () use ($page): string {
 };
 $options = [];
 $html = $render();
+check(str_contains($html, 'Afara navigation') && str_contains($html, 'aria-current="page"') && str_contains($html, 'admin.php?page=afara-abilities'), 'shared workspace navigation is accessible');
 check(str_contains($html, 'Disabled — enable Afara') && str_contains($html, 'afara-status--off') && str_contains($html, 'dashicons-lock'), 'Connect off-by-default status panel');
 check(str_contains($html, 'Open Afara settings'), 'off state links to settings');
 $options = ['afara_enabled' => '1', 'afara_domain_lock' => 'wrong.test'];
